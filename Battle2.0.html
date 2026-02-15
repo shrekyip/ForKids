@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<title>方向之剑：宝可梦挑战版</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(#1e293b, #020617);
+    color: white;
+    text-align: center;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  #game {
+    max-width: 600px;
+    margin: auto;
+    padding: 15px;
+  }
+
+  .info-bar {
+    display: flex;
+    justify-content: space-around;
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+  }
+
+  /* 怪物容器 */
+  .enemy-container {
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  #enemy-img {
+    width: 150px;
+    height: 150px;
+    transition: transform 0.3s, filter 0.3s;
+  }
+
+  /* 怪物状态动画 */
+  .defeat { transform: scale(0.8) rotate(15deg); filter: grayscale(1) opacity(0.7); }
+  .happy { transform: scale(1.2); filter: sepia(0.5) hue-rotate(90deg); }
+
+  .message-box {
+    height: 60px;
+    font-size: 1.4rem;
+    color: #fbbf24;
+    margin: 10px 0;
+    font-weight: bold;
+  }
+
+  #count-down {
+    font-size: 4rem;
+    color: #ef4444;
+    position: absolute;
+  }
+
+  .sequence-display {
+    font-size: 2.5rem;
+    min-height: 50px;
+    letter-spacing: 15px;
+    color: #60a5fa;
+  }
+
+  .buttons {
+    display: grid;
+    grid-template-areas: 
+      ". up ."
+      "left down right";
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+  .btn {
+    width: 75px;
+    height: 75px;
+    font-size: 30px;
+    border-radius: 50%;
+    border: none;
+    background: #334155;
+    color: white;
+    box-shadow: 0 4px #1e293b;
+    touch-action: manipulation;
+  }
+
+  .btn:active {
+    transform: translateY(4px);
+    box-shadow: none;
+    background: #475569;
+  }
+
+  .btn-up { grid-area: up; }
+  .btn-down { grid-area: down; }
+  .btn-left { grid-area: left; }
+  .btn-right { grid-area: right; }
+
+  .hidden { visibility: hidden; }
+</style>
+</head>
+<body>
+
+<div id="game">
+  <div class="info-bar">
+    <span>回合: <span id="round">1</span></span>
+    <span id="hp">❤️❤️❤️</span>
+  </div>
+
+  <div class="enemy-container">
+    <div id="count-down" class="hidden"></div>
+    <img id="enemy-img" src="" alt="pokemon">
+    <div id="enemy-name" style="font-size: 0.8rem; color: #94a3b8;">加载中...</div>
+  </div>
+
+  <div id="message" class="message-box">准备战斗！</div>
+  <div id="sequence" class="sequence-display"></div>
+
+  <div class="buttons">
+    <button class="btn btn-up" onclick="inputDir('↑')">↑</button>
+    <button class="btn btn-left" onclick="inputDir('←')">←</button>
+    <button class="btn btn-down" onclick="inputDir('↓')">↓</button>
+    <button class="btn btn-right" onclick="inputDir('→')">→</button>
+  </div>
+</div>
+
+<script>
+  // 游戏逻辑变量
+  const directions = ['↑', '↓', '←', '→'];
+  const pokemonIds = [1, 4, 7, 25, 39, 54, 133, 143, 150, 151]; // 经典宝可梦 ID
+  let currentPokeIndex = 0;
+  let round = 1;
+  let hp = 3;
+  let sequenceLength = 3;
+  let sequence = [];
+  let playerInput = [];
+  let acceptingInput = false;
+
+  // DOM 元素
+  const roundEl = document.getElementById("round");
+  const hpEl = document.getElementById("hp");
+  const seqEl = document.getElementById("sequence");
+  const msgEl = document.getElementById("message");
+  const countEl = document.getElementById("count-down");
+  const enemyImg = document.getElementById("enemy-img");
+  const enemyName = document.getElementById("enemy-name");
+
+  // 音频上下文（解决手机浏览器静音政策）
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  function playTone(freq, type, duration) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  }
+
+  function vibrate(ms) {
+    if (navigator.vibrate) navigator.vibrate(ms);
+  }
+
+  async function loadPokemon() {
+    const id = pokemonIds[currentPokeIndex % pokemonIds.length];
+    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+    const data = await res.json();
+    enemyImg.src = data.sprites.front_default;
+    enemyName.textContent = data.name.toUpperCase();
+    enemyImg.className = "";
+  }
+
+  async function startRound() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    
+    playerInput = [];
+    sequence = [];
+    enemyImg.className = "";
+    msgEl.textContent = "准备！";
+    
+    // 1. 倒数 3-2-1
+    for (let i = 3; i > 0; i--) {
+      countEl.textContent = i;
+      countEl.classList.remove("hidden");
+      playTone(440, 'sine', 0.1);
+      await new Promise(r => setTimeout(r, 800));
+      countEl.classList.add("hidden");
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    // 2. 生成并显示方向
+    for (let i = 0; i < sequenceLength; i++) {
+      sequence.push(directions[Math.floor(Math.random() * 4)]);
+    }
+
+    msgEl.textContent = "看招！";
+    seqEl.textContent = sequence.join(" ");
+    playTone(880, 'square', 0.2);
+    
+    setTimeout(() => {
+      seqEl.textContent = "";
+      msgEl.textContent = "快防御！";
+      acceptingInput = true;
+    }, 2000);
+  }
+
+  function inputDir(dir) {
+    if (!acceptingInput) return;
+
+    playerInput.push(dir);
+    const index = playerInput.length - 1;
+
+    if (playerInput[index] !== sequence[index]) {
+      // 失败：怪物开心
+      hp--;
+      updateHP();
+      acceptingInput = false;
+      enemyImg.className = "happy";
+      msgEl.textContent = "❌ 防御失败！";
+      vibrate([100, 50, 100]); // 强烈震动
+      playTone(150, 'sawtooth', 0.5);
+
+      if (hp <= 0) {
+        setTimeout(gameOver, 1000);
+      } else {
+        setTimeout(nextRound, 1500);
+      }
+      return;
+    }
+
+    // 成功按键反馈
+    playTone(600 + (index * 100), 'sine', 0.1);
+
+    if (playerInput.length === sequence.length) {
+      // 成功：怪物沮丧
+      acceptingInput = false;
+      enemyImg.className = "defeat";
+      msgEl.textContent = "✅ 完美防御！";
+      vibrate(50); // 短促震动
+      playTone(1200, 'sine', 0.3);
+      setTimeout(nextRound, 1500);
+    }
+  }
+
+  function nextRound() {
+    round++;
+    currentPokeIndex++;
+    if (round % 3 === 0) sequenceLength++;
+    roundEl.textContent = round;
+    loadPokemon().then(startRound);
+  }
+
+  function updateHP() {
+    hpEl.textContent = "❤️".repeat(hp);
+  }
+
+  function gameOver() {
+    msgEl.textContent = "💀 你被击败了！";
+    enemyName.textContent = "最终回合: " + round;
+    alert("游戏结束！你坚持了 " + round + " 回合");
+    location.reload();
+  }
+
+  // 键盘支持
+  document.addEventListener("keydown", e => {
+    const map = { ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→' };
+    if (map[e.key]) inputDir(map[e.key]);
+  });
+
+  // 开始初始化
+  loadPokemon().then(startRound);
+</script>
+
+</body>
+</html>
