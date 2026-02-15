@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>方向之剑 4.0</title>
+<title>方向之剑 4.1：小智的防御</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
   body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #020617; color: white; text-align: center; overflow: hidden; height: 100vh; }
@@ -10,7 +10,7 @@
   #ash-display { width: 100%; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 10px; }
   .ash-img { width: 110px; height: 110px; border-radius: 50%; border: 4px solid #fbbf24; background: #1e293b; object-fit: cover; }
   .status-text { font-size: 0.9rem; color: #94a3b8; margin-top: 8px; font-weight: bold; }
-  .enemy-img { width: 120px; height: 120px; transition: all 0.3s; background: rgba(255,255,255,0.05); border-radius: 10px; }
+  .enemy-img { width: 120px; height: 120px; transition: all 0.3s; }
   .message-box { height: 40px; font-size: 1.4rem; color: #fbbf24; margin: 10px 0; font-weight: bold; }
   .sequence-display { font-size: 2.2rem; min-height: 50px; letter-spacing: 10px; color: #60a5fa; }
   #blind-box { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.98); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
@@ -19,12 +19,15 @@
   #leaderboard { display: none; background: #1e293b; padding: 20px; border-radius: 20px; margin-top: 10px; border: 1px solid #334155; }
   .score-row { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid #2d3748; }
   .buttons { display: grid; grid-template-areas: ". up ." "left down right"; gap: 15px; justify-content: center; margin-top: auto; margin-bottom: 30px; }
-  .btn { width: 75px; height: 75px; font-size: 32px; border-radius: 50%; border: none; background: #334155; color: white; touch-action: manipulation; }
-  .btn:active { background: #475569; }
+  .btn { width: 75px; height: 75px; font-size: 32px; border-radius: 50%; border: none; background: #334155; color: white; touch-action: manipulation; box-shadow: 0 4px 0 #1e293b; }
+  .btn:active { background: #475569; transform: translateY(2px); box-shadow: none; }
   .hidden { visibility: hidden; }
+  /* 错误闪烁效果 */
+  .shake { animation: shake 0.5s; background-color: rgba(239, 68, 68, 0.2) !important; }
+  @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 20% { transform: translate(-3px, 0px) rotate(-1deg); } 40% { transform: translate(3px, 2px) rotate(1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 80% { transform: translate(3px, 1px) rotate(-1deg); } 100% { transform: translate(1px, -2px) rotate(1deg); } }
 </style>
 </head>
-<body>
+<body id="body">
 
 <div id="game">
   <div id="ash-display">
@@ -42,7 +45,7 @@
     <img id="enemy-img" class="enemy-img" src="">
   </div>
 
-  <div id="message" class="message-box">准备就绪</div>
+  <div id="message" class="message-box">点击任意按钮开始音效</div>
   <div id="sequence" class="sequence-display"></div>
 
   <div class="buttons">
@@ -64,17 +67,37 @@
   <div id="leaderboard">
     <h3 style="color:#fbbf24">🏆 全球榜单</h3>
     <div id="score-list">正在加载数据...</div>
-    <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:#60a5fa; border:none; border-radius:10px; color:white;">再玩一次</button>
+    <button onclick="location.reload()" style="margin-top:20px; padding:12px 25px; background:#60a5fa; border:none; border-radius:10px; color:white; font-weight:bold;">再玩一次</button>
   </div>
 </div>
 
 <script>
-  // 使用你提供的 Web App URL
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbylH5yG9OnzlEiLsjB5-h68X5JaUeNcnSswuQVUG3zAMcf5vW9Gofwp7wZXqp7RZbhP/exec";
   const directions = ['↑', '↓', '←', '→'];
   let round = 1, hp = 3, playedRounds = 0;
   let nextBoxAt = Math.floor(Math.random() * 4) + 3;
   let playerInput = [], sequence = [], acceptingInput = false;
+
+  // 音频系统优化
+  let audioCtx = null;
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function playTone(freq, type, duration) {
+    if (!audioCtx) return;
+    initAudio();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + duration);
+  }
 
   function updateAsh() {
     const img = document.getElementById("ash-img");
@@ -105,6 +128,7 @@
     for (let i = 3; i > 0; i--) {
       const c = document.getElementById("count-down");
       c.textContent = i; c.classList.remove("hidden");
+      if (audioCtx) playTone(440, 'sine', 0.1);
       await new Promise(r => setTimeout(r, 600));
       c.classList.add("hidden");
     }
@@ -113,23 +137,35 @@
     document.getElementById("sequence").textContent = sequence.join(" ");
     setTimeout(() => {
       document.getElementById("sequence").textContent = "";
-      document.getElementById("message").textContent = "请回放！";
+      document.getElementById("message").textContent = "请防御！"; // 还原语境
       acceptingInput = true;
     }, 1500);
   }
 
   function inputDir(dir) {
+    if (audioCtx === null) initAudio();
     if (!acceptingInput) return;
     playerInput.push(dir);
     const idx = playerInput.length - 1;
+
     if (playerInput[idx] !== sequence[idx]) {
-      hp--; updateHP(); acceptingInput = false;
-      if (hp <= 0) gameOver(); else setTimeout(checkBlindBox, 800);
+      // 防御失误反馈
+      acceptingInput = false;
+      playTone(150, 'sawtooth', 0.5); 
+      document.getElementById("message").textContent = "❌ 防御失误！";
+      document.getElementById("body").classList.add("shake");
+      setTimeout(() => {
+        document.getElementById("body").classList.remove("shake");
+        hp--; updateHP();
+        if (hp <= 0) gameOver(); else setTimeout(checkBlindBox, 800);
+      }, 500);
       return;
     }
+
+    playTone(600 + (idx * 100), 'sine', 0.1);
     if (playerInput.length === sequence.length) {
       acceptingInput = false;
-      document.getElementById("message").textContent = "✅ 成功！";
+      document.getElementById("message").textContent = "✅ 完美防御！";
       setTimeout(checkBlindBox, 800);
     }
   }
@@ -144,6 +180,7 @@
 
   function pickCard(choice) {
     const isHealing = Math.random() < 0.6;
+    if (isHealing) playTone(800, 'sine', 0.2);
     alert(isHealing ? "运气不错！体力恢复❤️" : "是空盒，继续加油！💨");
     if (isHealing && hp < 3) { hp++; updateHP(); }
     document.getElementById("blind-box").style.display = "none";
@@ -162,12 +199,10 @@
   }
 
   async function gameOver() {
-    document.getElementById("message").textContent = "💀 游戏结束";
-    // 异步尝试联网，不阻塞页面显示
+    document.getElementById("message").textContent = "💀 战斗结束";
     try {
         const name = prompt("进入结算！请输入你的名字记录分数:", "训练家");
         if (name) {
-            // 发送数据到 Google，不等待结果
             fetch(GOOGLE_SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -176,7 +211,6 @@
         }
     } catch (e) { console.log("Cloud Save Error"); }
     
-    // 显示本地/远程混合榜单
     document.getElementById("leaderboard").style.display = "block";
     document.querySelector(".buttons").style.display = "none";
     fetchScores();
