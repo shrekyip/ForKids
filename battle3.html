@@ -2,32 +2,22 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>方向之剑 3.1：小智的挑战</title>
+<title>方向之剑 4.0</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
   body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #020617; color: white; text-align: center; overflow: hidden; height: 100vh; }
   #game { max-width: 600px; margin: auto; padding: 15px; position: relative; height: 100%; display: flex; flex-direction: column; }
-  
-  /* 小智形象 */
   #ash-display { width: 100%; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 10px; }
   .ash-img { width: 110px; height: 110px; border-radius: 50%; border: 4px solid #fbbf24; background: #1e293b; object-fit: cover; }
   .status-text { font-size: 0.9rem; color: #94a3b8; margin-top: 8px; font-weight: bold; }
-
-  /* 游戏核心 */
-  .enemy-img { width: 120px; height: 120px; transition: all 0.3s; }
+  .enemy-img { width: 120px; height: 120px; transition: all 0.3s; background: rgba(255,255,255,0.05); border-radius: 10px; }
   .message-box { height: 40px; font-size: 1.4rem; color: #fbbf24; margin: 10px 0; font-weight: bold; }
   .sequence-display { font-size: 2.2rem; min-height: 50px; letter-spacing: 10px; color: #60a5fa; }
-
-  /* 盲盒界面 */
   #blind-box { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.98); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
   .cards { display: flex; gap: 15px; margin-top: 25px; }
-  .card { width: 85px; height: 130px; background: #334155; border: 2px solid #60a5fa; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; cursor: pointer; }
-
-  /* 排行榜 */
+  .card { width: 85px; height: 130px; background: #334155; border: 2px solid #60a5fa; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
   #leaderboard { display: none; background: #1e293b; padding: 20px; border-radius: 20px; margin-top: 10px; border: 1px solid #334155; }
   .score-row { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid #2d3748; }
-
-  /* 按钮 */
   .buttons { display: grid; grid-template-areas: ". up ." "left down right"; gap: 15px; justify-content: center; margin-top: auto; margin-bottom: 30px; }
   .btn { width: 75px; height: 75px; font-size: 32px; border-radius: 50%; border: none; background: #334155; color: white; touch-action: manipulation; }
   .btn:active { background: #475569; }
@@ -38,7 +28,7 @@
 
 <div id="game">
   <div id="ash-display">
-    <img id="ash-img" class="ash-img" src="" alt="小智">
+    <img id="ash-img" class="ash-img" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png" alt="小智">
     <div id="ash-status" class="status-text">准备战斗！</div>
   </div>
 
@@ -52,7 +42,7 @@
     <img id="enemy-img" class="enemy-img" src="">
   </div>
 
-  <div id="message" class="message-box">同步云端中...</div>
+  <div id="message" class="message-box">准备就绪</div>
   <div id="sequence" class="sequence-display"></div>
 
   <div class="buttons">
@@ -63,3 +53,149 @@
   </div>
 
   <div id="blind-box">
+    <h2 style="color:#fbbf24">补给时刻！</h2>
+    <div class="cards">
+      <div class="card" onclick="pickCard(0)">?</div>
+      <div class="card" onclick="pickCard(1)">?</div>
+      <div class="card" onclick="pickCard(2)">?</div>
+    </div>
+  </div>
+
+  <div id="leaderboard">
+    <h3 style="color:#fbbf24">🏆 全球榜单</h3>
+    <div id="score-list">正在加载数据...</div>
+    <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:#60a5fa; border:none; border-radius:10px; color:white;">再玩一次</button>
+  </div>
+</div>
+
+<script>
+  // 使用你提供的 Web App URL
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbylH5yG9OnzlEiLsjB5-h68X5JaUeNcnSswuQVUG3zAMcf5vW9Gofwp7wZXqp7RZbhP/exec";
+  const directions = ['↑', '↓', '←', '→'];
+  let round = 1, hp = 3, playedRounds = 0;
+  let nextBoxAt = Math.floor(Math.random() * 4) + 3;
+  let playerInput = [], sequence = [], acceptingInput = false;
+
+  function updateAsh() {
+    const img = document.getElementById("ash-img");
+    const status = document.getElementById("ash-status");
+    const urls = [
+      "",
+      "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/25.png",
+      "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png",
+      "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png"
+    ];
+    img.src = urls[hp];
+    status.textContent = hp === 3 ? "小智：活力充沛！" : (hp === 2 ? "小智：有点吃力..." : "小智：非常辛苦！");
+  }
+
+  async function loadPokemon() {
+    try {
+        const id = Math.floor(Math.random() * 150) + 1;
+        const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+        const data = await res.json();
+        document.getElementById("enemy-img").src = data.sprites.front_default;
+    } catch(e) { console.log("Pokemon Load Error"); }
+  }
+
+  async function startRound() {
+    updateAsh();
+    playerInput = []; sequence = [];
+    document.getElementById("message").textContent = "准备！";
+    for (let i = 3; i > 0; i--) {
+      const c = document.getElementById("count-down");
+      c.textContent = i; c.classList.remove("hidden");
+      await new Promise(r => setTimeout(r, 600));
+      c.classList.add("hidden");
+    }
+    let len = 3 + Math.floor(round / 5);
+    for (let i = 0; i < len; i++) sequence.push(directions[Math.floor(Math.random() * 4)]);
+    document.getElementById("sequence").textContent = sequence.join(" ");
+    setTimeout(() => {
+      document.getElementById("sequence").textContent = "";
+      document.getElementById("message").textContent = "请回放！";
+      acceptingInput = true;
+    }, 1500);
+  }
+
+  function inputDir(dir) {
+    if (!acceptingInput) return;
+    playerInput.push(dir);
+    const idx = playerInput.length - 1;
+    if (playerInput[idx] !== sequence[idx]) {
+      hp--; updateHP(); acceptingInput = false;
+      if (hp <= 0) gameOver(); else setTimeout(checkBlindBox, 800);
+      return;
+    }
+    if (playerInput.length === sequence.length) {
+      acceptingInput = false;
+      document.getElementById("message").textContent = "✅ 成功！";
+      setTimeout(checkBlindBox, 800);
+    }
+  }
+
+  function checkBlindBox() {
+    playedRounds++;
+    if (playedRounds >= nextBoxAt) {
+      playedRounds = 0; nextBoxAt = Math.floor(Math.random() * 4) + 3;
+      document.getElementById("blind-box").style.display = "flex";
+    } else { nextRound(); }
+  }
+
+  function pickCard(choice) {
+    const isHealing = Math.random() < 0.6;
+    alert(isHealing ? "运气不错！体力恢复❤️" : "是空盒，继续加油！💨");
+    if (isHealing && hp < 3) { hp++; updateHP(); }
+    document.getElementById("blind-box").style.display = "none";
+    nextRound();
+  }
+
+  function nextRound() {
+    round++;
+    document.getElementById("round").textContent = round;
+    loadPokemon().then(startRound);
+  }
+
+  function updateHP() {
+    document.getElementById("hp-ui").textContent = "❤️".repeat(hp);
+    updateAsh();
+  }
+
+  async function gameOver() {
+    document.getElementById("message").textContent = "💀 游戏结束";
+    // 异步尝试联网，不阻塞页面显示
+    try {
+        const name = prompt("进入结算！请输入你的名字记录分数:", "训练家");
+        if (name) {
+            // 发送数据到 Google，不等待结果
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ name: name, score: round })
+            });
+        }
+    } catch (e) { console.log("Cloud Save Error"); }
+    
+    // 显示本地/远程混合榜单
+    document.getElementById("leaderboard").style.display = "block";
+    document.querySelector(".buttons").style.display = "none";
+    fetchScores();
+  }
+
+  async function fetchScores() {
+    const list = document.getElementById("score-list");
+    try {
+        const res = await fetch(GOOGLE_SCRIPT_URL);
+        const data = await res.json();
+        list.innerHTML = data.map((s, i) => `
+          <div class="score-row"><span>${i+1}. ${s[0]}</span><span>${s[1]} 回合</span></div>
+        `).join('');
+    } catch(e) {
+        list.innerHTML = "无法加载全球榜单，请检查 Google 权限设置。";
+    }
+  }
+
+  loadPokemon().then(startRound);
+</script>
+</body>
+</html>
