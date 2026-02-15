@@ -2,45 +2,39 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>方向之剑 3.0：小智的挑战</title>
+<title>方向之剑 3.1：小智的挑战</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
   body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #020617; color: white; text-align: center; overflow: hidden; height: 100vh; }
   #game { max-width: 600px; margin: auto; padding: 15px; position: relative; height: 100%; display: flex; flex-direction: column; }
   
-  /* 小智形象层 */
+  /* 小智形象 */
   #ash-display { width: 100%; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 10px; }
-  .ash-img { width: 110px; height: 110px; border-radius: 50%; border: 4px solid #fbbf24; background: #1e293b; object-fit: cover; transition: transform 0.3s; }
+  .ash-img { width: 110px; height: 110px; border-radius: 50%; border: 4px solid #fbbf24; background: #1e293b; object-fit: cover; }
   .status-text { font-size: 0.9rem; color: #94a3b8; margin-top: 8px; font-weight: bold; }
 
-  /* 游戏核心区域 */
+  /* 游戏核心 */
   .enemy-img { width: 120px; height: 120px; transition: all 0.3s; }
   .message-box { height: 40px; font-size: 1.4rem; color: #fbbf24; margin: 10px 0; font-weight: bold; }
-  .sequence-display { font-size: 2.2rem; min-height: 50px; letter-spacing: 10px; color: #60a5fa; text-shadow: 0 0 10px rgba(96,165,250,0.5); }
+  .sequence-display { font-size: 2.2rem; min-height: 50px; letter-spacing: 10px; color: #60a5fa; }
 
-  /* 抽奖界面 (盲盒) */
-  #blind-box { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
+  /* 盲盒界面 */
+  #blind-box { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.98); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
   .cards { display: flex; gap: 15px; margin-top: 25px; }
-  .card { width: 85px; height: 130px; background: #334155; border: 2px solid #60a5fa; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; cursor: pointer; transition: 0.2s; }
-  .card:active { transform: scale(0.9); }
+  .card { width: 85px; height: 130px; background: #334155; border: 2px solid #60a5fa; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; cursor: pointer; }
 
-  /* 排行榜层 */
-  #leaderboard { display: none; background: #1e293b; padding: 20px; border-radius: 20px; margin-top: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
-  .score-row { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid #2d3748; font-size: 1.1rem; }
-  .score-row:last-child { border: none; }
+  /* 排行榜 */
+  #leaderboard { display: none; background: #1e293b; padding: 20px; border-radius: 20px; margin-top: 10px; border: 1px solid #334155; }
+  .score-row { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid #2d3748; }
 
-  /* 按钮控制 */
+  /* 按钮 */
   .buttons { display: grid; grid-template-areas: ". up ." "left down right"; gap: 15px; justify-content: center; margin-top: auto; margin-bottom: 30px; }
-  .btn { width: 75px; height: 75px; font-size: 32px; border-radius: 50%; border: none; background: #334155; color: white; touch-action: manipulation; box-shadow: 0 4px 0 #1e293b; }
-  .btn:active { background: #475569; transform: translateY(2px); box-shadow: none; }
-  
+  .btn { width: 75px; height: 75px; font-size: 32px; border-radius: 50%; border: none; background: #334155; color: white; touch-action: manipulation; }
+  .btn:active { background: #475569; }
   .hidden { visibility: hidden; }
-  #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:#020617; display:flex; justify-content:center; align-items:center; z-index:200; font-size:1.2rem; }
 </style>
 </head>
 <body>
-
-<div id="loading-overlay">正在同步全球数据...</div>
 
 <div id="game">
   <div id="ash-display">
@@ -48,17 +42,17 @@
     <div id="ash-status" class="status-text">准备战斗！</div>
   </div>
 
-  <div style="display: flex; justify-content: space-around; font-size: 1.2rem; margin: 15px 0; background: rgba(30,41,59,0.5); padding: 8px; border-radius: 10px;">
+  <div style="display: flex; justify-content: space-around; font-size: 1.2rem; margin: 15px 0;">
     <span>回合: <span id="round" style="color:#fbbf24">1</span></span>
     <span id="hp-ui">❤️❤️❤️</span>
   </div>
 
-  <div id="enemy-area" style="position: relative; height: 140px; display: flex; justify-content: center; align-items: center;">
-    <div id="count-down" style="font-size: 4rem; color: #ef4444; position: absolute; z-index: 10; font-weight: 900;" class="hidden"></div>
+  <div id="enemy-area" style="height: 140px; display: flex; justify-content: center; align-items: center;">
+    <div id="count-down" style="font-size: 4rem; color: #ef4444; position: absolute; z-index: 10;" class="hidden"></div>
     <img id="enemy-img" class="enemy-img" src="">
   </div>
 
-  <div id="message" class="message-box">加载中...</div>
+  <div id="message" class="message-box">同步云端中...</div>
   <div id="sequence" class="sequence-display"></div>
 
   <div class="buttons">
@@ -69,212 +63,3 @@
   </div>
 
   <div id="blind-box">
-    <h2 style="color:#fbbf24">幸运时刻！</h2>
-    <p>选择一张卡片，有机会恢复体力</p>
-    <div class="cards">
-      <div class="card" onclick="pickCard(0)">?</div>
-      <div class="card" onclick="pickCard(1)">?</div>
-      <div class="card" onclick="pickCard(2)">?</div>
-    </div>
-  </div>
-
-  <div id="leaderboard">
-    <h3 style="color:#fbbf24; margin-bottom:15px;">🏆 全球最高分榜单</h3>
-    <div id="score-list"></div>
-    <button onclick="location.reload()" style="margin-top:20px; padding:12px 30px; background:#60a5fa; border:none; border-radius:25px; color:white; font-weight:bold; font-size:1rem;">再次挑战</button>
-  </div>
-</div>
-
-<script>
-  // --- 配置区域 ---
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbylH5yG9OnzlEiLsjB5-h68X5JaUeNcnSswuQVUG3zAMcf5vW9Gofwp7wZXqp7RZbhP/exec";
-  const directions = ['↑', '↓', '←', '→'];
-  const pokemonIds = [1, 4, 7, 25, 39, 54, 133, 143, 150, 151, 152, 252, 384];
-  
-  // 小智形象 URL (你可以根据需要替换成你自己仓库里的图片)
-  const ashImages = {
-    3: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png", // 满血：皮卡丘笑容形象
-    2: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png",                // 掉1血：普通形象
-    1: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/25.png"          // 掉2血：辛苦/闪光形象
-  };
-
-  // --- 游戏变量 ---
-  let round = 1;
-  let hp = 3;
-  let sequenceLength = 3;
-  let winsBeforeBox = Math.floor(Math.random() * 8) + 3; // 3-10次胜利后出盲盒
-  let playerInput = [], sequence = [], acceptingInput = false;
-
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-  function playTone(freq, type, duration) {
-    if(audioCtx.state === 'suspended') audioCtx.resume();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.start(); osc.stop(audioCtx.currentTime + duration);
-  }
-
-  function updateAsh() {
-    const img = document.getElementById("ash-img");
-    const status = document.getElementById("ash-status");
-    img.src = ashImages[hp];
-    if(hp === 3) { status.textContent = "小智：状态极佳！笑容满面！"; status.style.color = "#4ade80"; }
-    if(hp === 2) { status.textContent = "小智：冷静应对，还没问题。"; status.style.color = "#94a3b8"; }
-    if(hp === 1) { status.textContent = "小智：有点辛苦，坚持住！"; status.style.color = "#f87171"; }
-  }
-
-  async function loadPokemon() {
-    const id = pokemonIds[Math.floor(Math.random() * pokemonIds.length)];
-    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-    const data = await res.json();
-    document.getElementById("enemy-img").src = data.sprites.front_default;
-  }
-
-  async function startRound() {
-    document.getElementById("loading-overlay").style.display = "none";
-    updateAsh();
-    playerInput = [];
-    sequence = [];
-    document.getElementById("message").textContent = "准备！";
-    
-    for (let i = 3; i > 0; i--) {
-      const c = document.getElementById("count-down");
-      c.textContent = i; c.classList.remove("hidden");
-      playTone(440, 'sine', 0.1);
-      await new Promise(r => setTimeout(r, 800));
-      c.classList.add("hidden");
-    }
-
-    for (let i = 0; i < sequenceLength; i++) sequence.push(directions[Math.floor(Math.random() * 4)]);
-    document.getElementById("sequence").textContent = sequence.join(" ");
-    
-    setTimeout(() => {
-      document.getElementById("sequence").textContent = "";
-      document.getElementById("message").textContent = "开始输入！";
-      acceptingInput = true;
-    }, 2000);
-  }
-
-  function inputDir(dir) {
-    if (!acceptingInput) return;
-    playerInput.push(dir);
-    const idx = playerInput.length - 1;
-
-    if (playerInput[idx] !== sequence[idx]) {
-      hp--; updateHP();
-      acceptingInput = false;
-      playTone(150, 'sawtooth', 0.5);
-      if (hp <= 0) gameOver(); else {
-        document.getElementById("message").textContent = "❌ 哎呀！";
-        setTimeout(nextRound, 1500);
-      }
-      return;
-    }
-
-    playTone(600 + (idx * 100), 'sine', 0.1);
-    if (playerInput.length === sequence.length) {
-      acceptingInput = false;
-      document.getElementById("message").textContent = "✅ 太棒了！";
-      winsBeforeBox--;
-      if (winsBeforeBox <= 0) {
-        setTimeout(showBlindBox, 1000);
-      } else {
-        setTimeout(nextRound, 1200);
-      }
-    }
-  }
-
-  function showBlindBox() {
-    document.getElementById("blind-box").style.display = "flex";
-  }
-
-  function pickCard(choice) {
-    const isHealing = Math.random() < 0.5; // 50% 概率回血
-    const cards = document.querySelectorAll('.card');
-    cards[choice].textContent = isHealing ? "❤️" : "💨";
-    cards[choice].style.background = isHealing ? "#065f46" : "#451a03";
-    
-    setTimeout(() => {
-      if (isHealing && hp < 3) {
-        hp++; updateHP(); updateAsh();
-        document.getElementById("message").textContent = "体力恢复！";
-        alert("抽到了！血量增加！小智恢复了笑容！");
-      } else if (isHealing && hp === 3) {
-        alert("抽到了回血卡，但体力已经满啦！");
-      } else {
-        alert("是一张空卡片，继续前进吧！");
-      }
-      document.getElementById("blind-box").style.display = "none";
-      cards.forEach(c => { c.textContent = "?"; c.style.background = "#334155"; });
-      winsBeforeBox = Math.floor(Math.random() * 8) + 3;
-      nextRound();
-    }, 1000);
-  }
-
-  function nextRound() {
-    round++;
-    if (round % 4 === 0) sequenceLength++; // 每4回合增加一个难度
-    document.getElementById("round").textContent = round;
-    loadPokemon().then(startRound);
-  }
-
-  function updateHP() {
-    document.getElementById("hp-ui").textContent = "❤️".repeat(hp);
-    updateAsh();
-  }
-
-  async function gameOver() {
-    document.getElementById("message").textContent = "💀 战斗结束";
-    document.getElementById("sequence").textContent = "得分: " + round;
-    
-    try {
-        // 从服务器获取当前前十名
-        const res = await fetch(GOOGLE_SCRIPT_URL);
-        const topScores = await res.json();
-        const minScore = topScores.length < 10 ? 0 : topScores[topScores.length - 1][1];
-
-        if (round > minScore) {
-            const name = prompt("🎉 闯入全球前十！请输入你的名字:", "最强训练家");
-            if (name) {
-                document.getElementById("message").textContent = "同步数据中...";
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ name: name, score: round })
-                });
-                const newTop10 = await response.json();
-                displayLeaderboard(newTop10);
-            } else {
-                displayLeaderboard(topScores);
-            }
-        } else {
-            displayLeaderboard(topScores);
-        }
-    } catch (e) {
-        alert("网络连接失败，请检查 Google Sheets 设置。");
-        console.error(e);
-    }
-  }
-
-  function displayLeaderboard(data) {
-    const list = document.getElementById("score-list");
-    list.innerHTML = data.map((s, i) => `
-      <div class="score-row">
-        <span>${i+1}. <strong>${s[0]}</strong></span>
-        <span style="color:#fbbf24">${s[1]} 回合</span>
-      </div>
-    `).join('');
-    document.getElementById("leaderboard").style.display = "block";
-    document.querySelector(".buttons").style.display = "none";
-    document.getElementById("message").style.display = "none";
-    document.getElementById("sequence").style.display = "none";
-  }
-
-  // 初始启动
-  loadPokemon().then(startRound);
-</script>
-</body>
-</html>
