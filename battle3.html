@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<title>方向之剑 3.0：小智的挑战</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+  body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #020617; color: white; text-align: center; overflow: hidden; height: 100vh; }
+  #game { max-width: 600px; margin: auto; padding: 15px; position: relative; height: 100%; display: flex; flex-direction: column; }
+  
+  /* 小智形象层 */
+  #ash-display { width: 100%; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 10px; }
+  .ash-img { width: 110px; height: 110px; border-radius: 50%; border: 4px solid #fbbf24; background: #1e293b; object-fit: cover; transition: transform 0.3s; }
+  .status-text { font-size: 0.9rem; color: #94a3b8; margin-top: 8px; font-weight: bold; }
+
+  /* 游戏核心区域 */
+  .enemy-img { width: 120px; height: 120px; transition: all 0.3s; }
+  .message-box { height: 40px; font-size: 1.4rem; color: #fbbf24; margin: 10px 0; font-weight: bold; }
+  .sequence-display { font-size: 2.2rem; min-height: 50px; letter-spacing: 10px; color: #60a5fa; text-shadow: 0 0 10px rgba(96,165,250,0.5); }
+
+  /* 抽奖界面 (盲盒) */
+  #blind-box { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
+  .cards { display: flex; gap: 15px; margin-top: 25px; }
+  .card { width: 85px; height: 130px; background: #334155; border: 2px solid #60a5fa; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; cursor: pointer; transition: 0.2s; }
+  .card:active { transform: scale(0.9); }
+
+  /* 排行榜层 */
+  #leaderboard { display: none; background: #1e293b; padding: 20px; border-radius: 20px; margin-top: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
+  .score-row { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid #2d3748; font-size: 1.1rem; }
+  .score-row:last-child { border: none; }
+
+  /* 按钮控制 */
+  .buttons { display: grid; grid-template-areas: ". up ." "left down right"; gap: 15px; justify-content: center; margin-top: auto; margin-bottom: 30px; }
+  .btn { width: 75px; height: 75px; font-size: 32px; border-radius: 50%; border: none; background: #334155; color: white; touch-action: manipulation; box-shadow: 0 4px 0 #1e293b; }
+  .btn:active { background: #475569; transform: translateY(2px); box-shadow: none; }
+  
+  .hidden { visibility: hidden; }
+  #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:#020617; display:flex; justify-content:center; align-items:center; z-index:200; font-size:1.2rem; }
+</style>
+</head>
+<body>
+
+<div id="loading-overlay">正在同步全球数据...</div>
+
+<div id="game">
+  <div id="ash-display">
+    <img id="ash-img" class="ash-img" src="" alt="小智">
+    <div id="ash-status" class="status-text">准备战斗！</div>
+  </div>
+
+  <div style="display: flex; justify-content: space-around; font-size: 1.2rem; margin: 15px 0; background: rgba(30,41,59,0.5); padding: 8px; border-radius: 10px;">
+    <span>回合: <span id="round" style="color:#fbbf24">1</span></span>
+    <span id="hp-ui">❤️❤️❤️</span>
+  </div>
+
+  <div id="enemy-area" style="position: relative; height: 140px; display: flex; justify-content: center; align-items: center;">
+    <div id="count-down" style="font-size: 4rem; color: #ef4444; position: absolute; z-index: 10; font-weight: 900;" class="hidden"></div>
+    <img id="enemy-img" class="enemy-img" src="">
+  </div>
+
+  <div id="message" class="message-box">加载中...</div>
+  <div id="sequence" class="sequence-display"></div>
+
+  <div class="buttons">
+    <button class="btn" style="grid-area: up" onclick="inputDir('↑')">↑</button>
+    <button class="btn" style="grid-area: left" onclick="inputDir('←')">←</button>
+    <button class="btn" style="grid-area: down" onclick="inputDir('↓')">↓</button>
+    <button class="btn" style="grid-area: right" onclick="
