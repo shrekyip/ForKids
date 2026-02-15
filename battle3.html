@@ -65,4 +65,216 @@
     <button class="btn" style="grid-area: up" onclick="inputDir('↑')">↑</button>
     <button class="btn" style="grid-area: left" onclick="inputDir('←')">←</button>
     <button class="btn" style="grid-area: down" onclick="inputDir('↓')">↓</button>
-    <button class="btn" style="grid-area: right" onclick="
+    <button class="btn" style="grid-area: right" onclick="inputDir('→')">→</button>
+  </div>
+
+  <div id="blind-box">
+    <h2 style="color:#fbbf24">幸运时刻！</h2>
+    <p>选择一张卡片，有机会恢复体力</p>
+    <div class="cards">
+      <div class="card" onclick="pickCard(0)">?</div>
+      <div class="card" onclick="pickCard(1)">?</div>
+      <div class="card" onclick="pickCard(2)">?</div>
+    </div>
+  </div>
+
+  <div id="leaderboard">
+    <h3 style="color:#fbbf24; margin-bottom:15px;">🏆 全球最高分榜单</h3>
+    <div id="score-list"></div>
+    <button onclick="location.reload()" style="margin-top:20px; padding:12px 30px; background:#60a5fa; border:none; border-radius:25px; color:white; font-weight:bold; font-size:1rem;">再次挑战</button>
+  </div>
+</div>
+
+<script>
+  // --- 配置区域 ---
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbylH5yG9OnzlEiLsjB5-h68X5JaUeNcnSswuQVUG3zAMcf5vW9Gofwp7wZXqp7RZbhP/exec";
+  const directions = ['↑', '↓', '←', '→'];
+  const pokemonIds = [1, 4, 7, 25, 39, 54, 133, 143, 150, 151, 152, 252, 384];
+  
+  // 小智形象 URL (你可以根据需要替换成你自己仓库里的图片)
+  const ashImages = {
+    3: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png", // 满血：皮卡丘笑容形象
+    2: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png",                // 掉1血：普通形象
+    1: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/25.png"          // 掉2血：辛苦/闪光形象
+  };
+
+  // --- 游戏变量 ---
+  let round = 1;
+  let hp = 3;
+  let sequenceLength = 3;
+  let winsBeforeBox = Math.floor(Math.random() * 8) + 3; // 3-10次胜利后出盲盒
+  let playerInput = [], sequence = [], acceptingInput = false;
+
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  function playTone(freq, type, duration) {
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + duration);
+  }
+
+  function updateAsh() {
+    const img = document.getElementById("ash-img");
+    const status = document.getElementById("ash-status");
+    img.src = ashImages[hp];
+    if(hp === 3) { status.textContent = "小智：状态极佳！笑容满面！"; status.style.color = "#4ade80"; }
+    if(hp === 2) { status.textContent = "小智：冷静应对，还没问题。"; status.style.color = "#94a3b8"; }
+    if(hp === 1) { status.textContent = "小智：有点辛苦，坚持住！"; status.style.color = "#f87171"; }
+  }
+
+  async function loadPokemon() {
+    const id = pokemonIds[Math.floor(Math.random() * pokemonIds.length)];
+    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+    const data = await res.json();
+    document.getElementById("enemy-img").src = data.sprites.front_default;
+  }
+
+  async function startRound() {
+    document.getElementById("loading-overlay").style.display = "none";
+    updateAsh();
+    playerInput = [];
+    sequence = [];
+    document.getElementById("message").textContent = "准备！";
+    
+    for (let i = 3; i > 0; i--) {
+      const c = document.getElementById("count-down");
+      c.textContent = i; c.classList.remove("hidden");
+      playTone(440, 'sine', 0.1);
+      await new Promise(r => setTimeout(r, 800));
+      c.classList.add("hidden");
+    }
+
+    for (let i = 0; i < sequenceLength; i++) sequence.push(directions[Math.floor(Math.random() * 4)]);
+    document.getElementById("sequence").textContent = sequence.join(" ");
+    
+    setTimeout(() => {
+      document.getElementById("sequence").textContent = "";
+      document.getElementById("message").textContent = "开始输入！";
+      acceptingInput = true;
+    }, 2000);
+  }
+
+  function inputDir(dir) {
+    if (!acceptingInput) return;
+    playerInput.push(dir);
+    const idx = playerInput.length - 1;
+
+    if (playerInput[idx] !== sequence[idx]) {
+      hp--; updateHP();
+      acceptingInput = false;
+      playTone(150, 'sawtooth', 0.5);
+      if (hp <= 0) gameOver(); else {
+        document.getElementById("message").textContent = "❌ 哎呀！";
+        setTimeout(nextRound, 1500);
+      }
+      return;
+    }
+
+    playTone(600 + (idx * 100), 'sine', 0.1);
+    if (playerInput.length === sequence.length) {
+      acceptingInput = false;
+      document.getElementById("message").textContent = "✅ 太棒了！";
+      winsBeforeBox--;
+      if (winsBeforeBox <= 0) {
+        setTimeout(showBlindBox, 1000);
+      } else {
+        setTimeout(nextRound, 1200);
+      }
+    }
+  }
+
+  function showBlindBox() {
+    document.getElementById("blind-box").style.display = "flex";
+  }
+
+  function pickCard(choice) {
+    const isHealing = Math.random() < 0.5; // 50% 概率回血
+    const cards = document.querySelectorAll('.card');
+    cards[choice].textContent = isHealing ? "❤️" : "💨";
+    cards[choice].style.background = isHealing ? "#065f46" : "#451a03";
+    
+    setTimeout(() => {
+      if (isHealing && hp < 3) {
+        hp++; updateHP(); updateAsh();
+        document.getElementById("message").textContent = "体力恢复！";
+        alert("抽到了！血量增加！小智恢复了笑容！");
+      } else if (isHealing && hp === 3) {
+        alert("抽到了回血卡，但体力已经满啦！");
+      } else {
+        alert("是一张空卡片，继续前进吧！");
+      }
+      document.getElementById("blind-box").style.display = "none";
+      cards.forEach(c => { c.textContent = "?"; c.style.background = "#334155"; });
+      winsBeforeBox = Math.floor(Math.random() * 8) + 3;
+      nextRound();
+    }, 1000);
+  }
+
+  function nextRound() {
+    round++;
+    if (round % 4 === 0) sequenceLength++; // 每4回合增加一个难度
+    document.getElementById("round").textContent = round;
+    loadPokemon().then(startRound);
+  }
+
+  function updateHP() {
+    document.getElementById("hp-ui").textContent = "❤️".repeat(hp);
+    updateAsh();
+  }
+
+  async function gameOver() {
+    document.getElementById("message").textContent = "💀 战斗结束";
+    document.getElementById("sequence").textContent = "得分: " + round;
+    
+    try {
+        // 从服务器获取当前前十名
+        const res = await fetch(GOOGLE_SCRIPT_URL);
+        const topScores = await res.json();
+        const minScore = topScores.length < 10 ? 0 : topScores[topScores.length - 1][1];
+
+        if (round > minScore) {
+            const name = prompt("🎉 闯入全球前十！请输入你的名字:", "最强训练家");
+            if (name) {
+                document.getElementById("message").textContent = "同步数据中...";
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ name: name, score: round })
+                });
+                const newTop10 = await response.json();
+                displayLeaderboard(newTop10);
+            } else {
+                displayLeaderboard(topScores);
+            }
+        } else {
+            displayLeaderboard(topScores);
+        }
+    } catch (e) {
+        alert("网络连接失败，请检查 Google Sheets 设置。");
+        console.error(e);
+    }
+  }
+
+  function displayLeaderboard(data) {
+    const list = document.getElementById("score-list");
+    list.innerHTML = data.map((s, i) => `
+      <div class="score-row">
+        <span>${i+1}. <strong>${s[0]}</strong></span>
+        <span style="color:#fbbf24">${s[1]} 回合</span>
+      </div>
+    `).join('');
+    document.getElementById("leaderboard").style.display = "block";
+    document.querySelector(".buttons").style.display = "none";
+    document.getElementById("message").style.display = "none";
+    document.getElementById("sequence").style.display = "none";
+  }
+
+  // 初始启动
+  loadPokemon().then(startRound);
+</script>
+</body>
+</html>
