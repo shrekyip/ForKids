@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>神奇宝贝冒险 - 进阶版</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f4; text-align: center; margin: 0; overflow: hidden; touch-action: manipulation; }
+        #game-container { width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; }
+        .screen { display: none; width: 100%; flex-grow: 1; flex-direction: column; align-items: center; justify-content: center; }
+        .active { display: flex; }
+        
+        /* 角色选择样式 */
+        .trainer-option { cursor: pointer; transition: 0.2s; }
+        .trainer-option:active { transform: scale(0.9); }
+        .trainer-img { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #3498db; background: white; object-fit: cover; }
+
+        /* 能量条 */
+        .bar-container { width: 80%; height: 25px; background: #ddd; border-radius: 15px; overflow: hidden; margin: 15px 0; border: 2px solid #333; position: relative; }
+        #energy-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #ff4d4d, #ffcc00); transition: width 0.1s ease-out; }
+        
+        /* 投掷条 */
+        #toss-bar { width: 80%; height: 20px; background: #eee; position: relative; border: 2px solid #555; margin: 20px 0; }
+        #toss-cursor { width: 12px; height: 100%; background: #ff4d4d; position: absolute; left: 0; }
+        .center-mark { width: 30%; height: 100%; background: rgba(0, 255, 0, 0.4); position: absolute; left: 35%; }
+        
+        /* 按钮 */
+        .circle-btn { width: 85px; height: 85px; border-radius: 50%; border: none; background: #3498db; color: white; font-size: 18px; font-weight: bold; box-shadow: 0 5px #2980b9; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .circle-btn:active { transform: translateY(3px); box-shadow: 0 2px #2980b9; }
+        
+        /* 底部图库 */
+        #collection-shelf { width: 100%; height: 100px; background: #333; display: flex; align-items: center; justify-content: center; gap: 10px; border-top: 4px solid #ffcc00; }
+        .collected-slot { width: 60px; height: 60px; background: #555; border-radius: 10px; border: 2px dashed #999; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .collected-slot img { width: 50px; height: 50px; object-fit: contain; }
+
+        .pokemon-img { width: 160px; height: 160px; object-fit: contain; }
+        .hp-text { color: #e74c3c; font-weight: bold; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="screen-select" class="screen active">
+        <h2>请选择你的训练师</h2>
+        <div id="trainer-pannel" style="display: flex; gap: 20px;">
+            </div>
+    </div>
+
+    <div id="screen-adventure" class="screen">
+        <p id="story-display" style="font-size:1.1rem; padding:15px; font-weight:bold;"></p>
+        <div id="hp-indicator" class="hp-text">遇到强力精灵！</div>
+        <p style="margin:5px;"><b>快快速按键充能！</b></p>
+        <div class="bar-container"><div id="energy-fill"></div></div>
+        <div style="display: flex; gap: 40px;">
+            <button class="circle-btn" onclick="addEnergy()">点我</button>
+            <button class="circle-btn" onclick="addEnergy()">点我</button>
+        </div>
+    </div>
+
+    <div id="screen-catch" class="screen">
+        <h3 id="toss-title">准备投掷！</h3>
+        <img id="wild-pokemon" class="pokemon-img" src="">
+        <p id="pokemon-info" style="font-weight: bold;"></p>
+        <div id="toss-bar">
+            <div class="center-mark"></div>
+            <div id="toss-cursor"></div>
+        </div>
+        <button class="circle-btn" style="background:#e67e22; box-shadow: 0 5px #d35400;" onclick="lockToss()">投掷!</button>
+    </div>
+
+    <div id="screen-win" class="screen">
+        <h1 style="color: #f1c40f;">🌟 任务达成 🌟</h1>
+        <p>你今天太棒了！收服了5只强大的精灵！</p>
+        <button class="circle-btn" style="width:120px; border-radius:10px;" onclick="location.reload()">再玩一次</button>
+    </div>
+
+    <div id="collection-shelf">
+        <div class="collected-slot" id="slot-0"></div>
+        <div class="collected-slot" id="slot-1"></div>
+        <div class="collected-slot" id="slot-2"></div>
+        <div class="collected-slot" id="slot-3"></div>
+        <div class="collected-slot" id="slot-4"></div>
+    </div>
+</div>
+
+<script>
+    let caughtCount = 0;
+    let energy = 0;
+    let decayTimer = null;
+    let tossStep = 0;
+    let errors = [];
+    let cursorPos = 0;
+    let cursorDir = 1;
+    let tossInterval = null;
+    let currentPokemon = null;
+    let clickPower = 10; // 默认每次点击增加的能量
+
+    const stories = ["今天是晴朗的一天！", "草丛里有大动静！", "发现一只精灵在附近！"];
+    const pokemons = [
+        { name: "皮卡丘", img: "https://assets.pokemon.com/assets/cms2/img/pokedex/full/025.png", difficulty: 1 },
+        { name: "喷火龙", img: "https://assets.pokemon.com/assets/cms2/img/pokedex/full/006.png", difficulty: 1.8 },
+        { name: "水箭龟", img: "https://assets.pokemon.com/assets/cms2/img/pokedex/full/009.png", difficulty: 2.2 },
+        { name: "超梦", img: "https://assets.pokemon.com/assets/cms2/img/pokedex/full/150.png", difficulty: 3.5 }
+    ];
+
+    // 初始化：随机抽取3张本地图片作为训练师
+    function initTrainerSelection() {
+        const pannel = document.getElementById('trainer-pannel');
+        const availableIds = Array.from({length: 26}, (_, i) => i + 1);
+        const selectedIds = [];
+        
+        for(let i=0; i<3; i++) {
+            const randomIndex = Math.floor(Math.random() * availableIds.length);
+            selectedIds.push(availableIds.splice(randomIndex, 1)[0]);
+        }
+
+        selectedIds.forEach(id => {
+            const div = document.createElement('div');
+            div.className = 'trainer-option';
+            div.onclick = () => startGame();
+            div.innerHTML = `<img src="img/${id}.png" class="trainer-img"><p>训练师 ${id}</p>`;
+            pannel.appendChild(div);
+        });
+    }
+
+    function startGame() {
+        document.getElementById('screen-select').classList.remove('active');
+        document.getElementById('screen-adventure').classList.add('active');
+        initRound();
+    }
+
+    function initRound() {
+        energy = 0;
+        updateEnergyUI();
+        
+        // 随机选一只精灵作为本轮目标，决定“血量”
+        currentPokemon = pokemons[Math.floor(Math.random() * pokemons.length)];
+        // 难度系数越高，clickPower越小。基础点击力为 15，除以难度系数。
+        clickPower = 15 / currentPokemon.difficulty; 
+        
+        document.getElementById('story-display').innerText = stories[Math.floor(Math.random() * stories.length)];
+        document.getElementById('hp-indicator').innerText = `目标精灵：${currentPokemon.name} (HP: ${Math.floor(currentPokemon.difficulty * 100)})`;
+        
+        if(decayTimer) clearInterval(decayTimer);
+        decayTimer = setInterval(() => {
+            if (energy > 0) energy -= 1.5; // 每秒自动流失一点能量
+            updateEnergyUI();
+        }, 150);
+    }
+
+    function addEnergy() {
+        energy += clickPower; 
+        if (energy >= 100) {
+            energy = 100;
+            updateEnergyUI();
+            clearInterval(decayTimer);
+            setTimeout(showCatchScreen, 300);
+        }
+        updateEnergyUI();
+    }
+
+    function updateEnergyUI() {
+        document.getElementById('energy-fill').style.width = energy + "%";
+    }
+
+    function showCatchScreen() {
+        document.getElementById('screen-adventure').classList.remove('active');
+        document.getElementById('screen-catch').classList.add('active');
+        document.getElementById('wild-pokemon').src = currentPokemon.img;
+        document.getElementById('pokemon-info').innerText = `${currentPokemon.name} 进入捕捉范围！`;
+        
+        tossStep = 0;
+        errors = [];
+        startTossLoop();
+    }
+
+    function startTossLoop() {
+        const steps = ["锁定方向", "锁定高度", "控制旋转"];
+        document.getElementById('toss-title').innerText = steps[tossStep];
+        cursorPos = 0;
+        // 速度降低后的数值
+        let speed = 0.8 + (Math.random() * 1.5); 
+        
+        if(tossInterval) clearInterval(tossInterval);
+        tossInterval = setInterval(() => {
+            cursorPos += speed * cursorDir;
+            if (cursorPos >= 100 || cursorPos <= 0) {
+                cursorDir *= -1;
+                speed = 0.8 + (Math.random() * 1.5); 
+            }
+            document.getElementById('toss-cursor').style.left = cursorPos + "%";
+        }, 20);
+    }
+
+    function lockToss() {
+        clearInterval(tossInterval);
+        errors.push(Math.abs(cursorPos - 50));
+        tossStep++;
+        if (tossStep < 3) setTimeout(startTossLoop, 400);
+        else finishCatch();
+    }
+
+    function finishCatch() {
+        let avgError = errors.reduce((a, b) => a + b) / 3;
+        if (avgError <= 25) {
+            alert("✅ 成功捕捉 " + currentPokemon.name + "！");
+            document.getElementById(`slot-${caughtCount}`).innerHTML = `<img src="${currentPokemon.img}">`;
+            caughtCount++;
+        } else {
+            alert("❌ 哎呀，精灵力气太大逃跑了！");
+        }
+
+        if (caughtCount >= 5) {
+            document.getElementById('screen-catch').classList.remove('active');
+            document.getElementById('screen-win').classList.add('active');
+        } else {
+            document.getElementById('screen-catch').classList.remove('active');
+            document.getElementById('screen-adventure').classList.add('active');
+            initRound();
+        }
+    }
+
+    // 页面加载后初始化头像
+    window.onload = initTrainerSelection;
+</script>
+</body>
+</html>
