@@ -24,7 +24,7 @@
         .bar-container { width: 80%; height: 20px; background: #eee; border-radius: 10px; overflow: hidden; margin: 15px 0; border: 2px solid #444; }
         #energy-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #ff9f43, #ff6b6b); }
         #toss-bar { width: 85%; height: 26px; background: #ddd; position: relative; border: 2px solid #555; margin: 20px 0; border-radius: 6px; }
-        #toss-cursor { width: 14px; height: 100%; background: #222; position: absolute; left: 0; z-index: 5; border-radius: 2px; transition: transform 0.1s, background-color 0.1s; }
+        #toss-cursor { width: 14px; height: 100%; background: #222; position: absolute; left: 0; z-index: 5; border-radius: 2px; }
         #target-zone { height: 100%; background: rgba(46, 204, 113, 0.5); position: absolute; }
         
         .circle-btn { width: 90px; height: 90px; border-radius: 50%; border: none; background: var(--primary); color: white; font-size: 18px; font-weight: bold; box-shadow: 0 6px #cf3948; cursor: pointer; }
@@ -42,7 +42,7 @@
 
 <div id="game-container">
     <div id="active-trainer-bar"><img id="current-trainer-img" src=""><span id="current-trainer-name"></span></div>
-    <div style="position: absolute; top: 15px; right: 15px; font-weight: bold; color: #666;">任务: <span id="attempt-count">0</span>/5</div>
+    <div style="position: absolute; top: 15px; right: 15px; font-weight: bold; color: #666;">任务进度: <span id="attempt-count">0</span>/5</div>
 
     <div id="screen-select" class="screen active">
         <h2>选择你的伙伴卡片</h2>
@@ -70,7 +70,7 @@
     <div id="screen-win" class="screen">
         <h1 style="color: var(--accent);">今天的冒险报告</h1>
         <p id="final-score" style="font-size: 1.1rem; font-weight: bold;"></p>
-        <button class="circle-btn" style="width:140px; border-radius:15px;" onclick="location.reload()">明天再见</button>
+        <button class="circle-btn" style="width:140px; border-radius:15px;" onclick="location.reload()">重新开始</button>
     </div>
 
     <div id="collection-shelf">
@@ -93,7 +93,6 @@
     let energy = 0, decayTimer, tossInterval, currentPokemon, tossStep, errors;
     let cursorPos = 0, cursorDir = 1, pokemonsForToday = [];
 
-    // 精灵池库 (恢复到25个)
     const pokemonsPool = [
         { name: "皮卡丘", img: "025", difficulty: 1.0, acc: 25 },
         { name: "妙蛙种子", img: "001", difficulty: 1.0, acc: 25 },
@@ -165,7 +164,7 @@
         document.getElementById('screen-adventure').classList.remove('active');
         document.getElementById('screen-catch').classList.add('active');
         document.getElementById('wild-pokemon').src = `https://assets.pokemon.com/assets/cms2/img/pokedex/full/${currentPokemon.img}.png`;
-        document.getElementById('pokemon-info').innerText = `${currentPokemon.name} - 捕捉难度: ${currentPokemon.acc < 10 ? '极难' : '普通'}`;
+        document.getElementById('pokemon-info').innerText = `${currentPokemon.name} 在等待挑战！`;
         const zone = document.getElementById('target-zone');
         zone.style.width = (currentPokemon.acc * 2) + "%";
         zone.style.left = (50 - currentPokemon.acc) + "%";
@@ -194,7 +193,6 @@
         let currentErr = Math.abs(cursorPos - 50);
         errors.push(currentErr);
 
-        // 视觉反馈：定格并变色
         const cursor = document.getElementById('toss-cursor');
         const isGood = currentErr <= currentPokemon.acc;
         cursor.style.backgroundColor = isGood ? "#2ecc71" : "#e74c3c";
@@ -212,21 +210,26 @@
     function finishCatch() {
         let avgError = errors.reduce((a, b) => a + b) / 3;
         const slot = document.getElementById(`slot-${attemptCount}`);
+        
+        // 增加弹窗逻辑
         if (avgError <= currentPokemon.acc) {
             playSound('success');
             slot.innerHTML = `<img src="https://assets.pokemon.com/assets/cms2/img/pokedex/full/${currentPokemon.img}.png">`;
             successCount++;
+            alert("✨ 成功！" + currentPokemon.name + " 被你收服了！");
         } else {
             playSound('fail');
             slot.innerHTML = "逃走"; slot.classList.add('missed');
+            alert("💨 哎呀！" + currentPokemon.name + " 逃跑了...");
         }
+
         attemptCount++;
         if (attemptCount >= 5) {
             setTimeout(() => {
                 document.getElementById('screen-catch').classList.remove('active');
                 document.getElementById('screen-win').classList.add('active');
-                document.getElementById('final-score').innerText = `今天收服了 ${successCount} 只精灵！`;
-            }, 600);
+                document.getElementById('final-score').innerText = `今天一共挑战了 5 只，成功收服了 ${successCount} 只！`;
+            }, 500);
         } else {
             document.getElementById('screen-catch').classList.remove('active');
             document.getElementById('screen-adventure').classList.add('active');
