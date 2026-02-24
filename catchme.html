@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>神奇宝贝：全员大集合</title>
+    <title>神奇宝贝：大师级挑战</title>
     <style>
         :root { --primary: #ff4757; --accent: #ffa502; --bg: #f1f2f6; }
         body { font-family: 'PingFang SC', sans-serif; background: var(--bg); text-align: center; margin: 0; overflow: hidden; touch-action: manipulation; }
@@ -11,47 +11,48 @@
         .screen { display: none; width: 100%; flex-grow: 1; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
         .active { display: flex; }
 
-        /* 训练师卡片 */
-        .trainer-container { display: flex; gap: 15px; overflow-x: auto; width: 100%; padding: 10px 0; justify-content: center; }
-        .trainer-card { background: white; border: 3px solid #ddd; border-radius: 15px; padding: 10px; min-width: 90px; transition: 0.3s; cursor: pointer; }
-        .trainer-card img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; background: #eee; }
-
-        /* 顶部伙伴栏 */
+        /* 顶部状态与伙伴 */
         #active-trainer-bar { position: absolute; top: 10px; left: 10px; display: none; align-items: center; background: rgba(255,255,255,0.9); padding: 5px 12px; border-radius: 25px; border: 2px solid var(--accent); z-index: 100; }
         #active-trainer-bar img { width: 35px; height: 35px; border-radius: 50%; margin-right: 8px; }
 
-        /* 进度条与投掷 */
+        /* 核心捕捉区域 UI */
+        #toss-area { width: 300px; height: 120px; position: relative; margin: 20px 0; background: #eee; border: 3px solid #555; border-radius: 10px; overflow: hidden; }
+        #target-zone { background: rgba(46, 204, 113, 0.5); position: absolute; transition: all 0.3s; }
+        #toss-cursor { width: 16px; height: 16px; background: #222; position: absolute; border-radius: 50%; z-index: 5; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+        
+        /* 能量蓄力 */
         .bar-container { width: 80%; height: 20px; background: #eee; border-radius: 10px; overflow: hidden; margin: 15px 0; border: 2px solid #444; }
         #energy-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #ff9f43, #ff6b6b); }
-        #toss-bar { width: 85%; height: 26px; background: #ddd; position: relative; border: 2px solid #555; margin: 20px 0; border-radius: 6px; }
-        #toss-cursor { width: 14px; height: 100%; background: #222; position: absolute; left: 0; z-index: 5; border-radius: 2px; }
-        #target-zone { height: 100%; background: rgba(46, 204, 113, 0.5); position: absolute; }
-        
+
         .circle-btn { width: 90px; height: 90px; border-radius: 50%; border: none; background: var(--primary); color: white; font-size: 18px; font-weight: bold; box-shadow: 0 6px #cf3948; cursor: pointer; }
         .circle-btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px #cf3948; }
-        .circle-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .circle-btn:disabled { opacity: 0.5; }
+
+        .trainer-container { display: flex; gap: 15px; overflow-x: auto; width: 100%; justify-content: center; }
+        .trainer-card { background: white; border: 3px solid #ddd; border-radius: 15px; padding: 10px; min-width: 90px; }
+        .trainer-card img { width: 70px; height: 70px; border-radius: 50%; background: #eee; }
 
         #collection-shelf { width: 100%; height: 90px; background: #2f3542; display: flex; align-items: center; justify-content: center; gap: 8px; border-top: 4px solid var(--accent); }
         .slot { width: 50px; height: 50px; background: #57606f; border-radius: 8px; border: 2px solid #747d8c; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         .slot img { width: 45px; height: 45px; object-fit: contain; }
         .slot.missed { border-color: var(--primary); color: #ff6b6b; font-size: 10px; font-weight: bold; }
-        .pokemon-img { width: 170px; height: 170px; object-fit: contain; }
+        .pokemon-img { width: 160px; height: 160px; object-fit: contain; }
     </style>
 </head>
 <body>
 
 <div id="game-container">
     <div id="active-trainer-bar"><img id="current-trainer-img" src=""><span id="current-trainer-name"></span></div>
-    <div style="position: absolute; top: 15px; right: 15px; font-weight: bold; color: #666;">任务进度: <span id="attempt-count">0</span>/5</div>
+    <div style="position: absolute; top: 15px; right: 15px; font-weight: bold; color: #666;">任务: <span id="attempt-count">0</span>/5</div>
 
     <div id="screen-select" class="screen active">
-        <h2>选择你的伙伴卡片</h2>
+        <h2>大师级挑战：选择伙伴</h2>
         <div id="trainer-pannel" class="trainer-container"></div>
     </div>
 
     <div id="screen-adventure" class="screen">
         <p id="story-display" style="font-weight:bold;"></p>
-        <div id="hp-indicator" style="color: var(--primary); font-weight: bold; background: #ffeaa7; padding: 5px 15px; border-radius: 15px;">🔍 寻找中...</div>
+        <div id="hp-indicator" style="color: var(--primary); font-weight: bold; background: #ffeaa7; padding: 5px 15px; border-radius: 15px;">等级：大师</div>
         <div class="bar-container"><div id="energy-fill"></div></div>
         <div style="display: flex; gap: 40px;">
             <button class="circle-btn" onclick="addEnergy()">蓄力!</button>
@@ -62,15 +63,20 @@
     <div id="screen-catch" class="screen">
         <h3 id="toss-title">准备!</h3>
         <img id="wild-pokemon" class="pokemon-img" src="">
-        <p id="pokemon-info" style="font-weight: bold;"></p>
-        <div id="toss-bar"><div id="target-zone"></div><div id="toss-cursor"></div></div>
-        <button id="lock-btn" class="circle-btn" style="background:var(--accent); box-shadow: 0 6px #e67e22;" onclick="lockToss()">投掷</button>
+        <p id="pokemon-info" style="font-weight: bold; color:var(--primary)"></p>
+        
+        <div id="toss-area">
+            <div id="target-zone"></div>
+            <div id="toss-cursor"></div>
+        </div>
+        
+        <button id="lock-btn" class="circle-btn" style="background:var(--accent); box-shadow: 0 6px #e67e22;" onclick="lockToss()">捕获锁定</button>
     </div>
 
     <div id="screen-win" class="screen">
-        <h1 style="color: var(--accent);">今天的冒险报告</h1>
+        <h1 style="color: var(--accent);">挑战报告</h1>
         <p id="final-score" style="font-size: 1.1rem; font-weight: bold;"></p>
-        <button class="circle-btn" style="width:140px; border-radius:15px;" onclick="location.reload()">重新开始</button>
+        <button class="circle-btn" style="width:140px; border-radius:15px;" onclick="location.reload()">重新开启</button>
     </div>
 
     <div id="collection-shelf">
@@ -91,43 +97,32 @@
 
     let attemptCount = 0, successCount = 0;
     let energy = 0, decayTimer, tossInterval, currentPokemon, tossStep, errors;
-    let cursorPos = 0, cursorDir = 1, pokemonsForToday = [];
+    let moveMode = 'H'; // H:横向, V:纵向, C:圆周
+    let angle = 0, pos = 0, dir = 1;
+    let pokemonsForToday = [];
 
+    // 精灵池库 (准确区缩小30%-50%)
     const pokemonsPool = [
-        { name: "皮卡丘", img: "025", difficulty: 1.0, acc: 25 },
-        { name: "妙蛙种子", img: "001", difficulty: 1.0, acc: 25 },
-        { name: "小火龙", img: "004", difficulty: 1.0, acc: 25 },
-        { name: "杰尼龟", img: "007", difficulty: 1.0, acc: 25 },
-        { name: "巴大蝶", img: "012", difficulty: 0.9, acc: 30 },
-        { name: "比比鸟", img: "017", difficulty: 1.1, acc: 25 },
-        { name: "九尾", img: "038", difficulty: 1.8, acc: 20 },
-        { name: "胖丁", img: "039", difficulty: 0.8, acc: 30 },
-        { name: "可达鸭", img: "054", difficulty: 1.2, acc: 25 },
-        { name: "风速狗", img: "059", difficulty: 2.2, acc: 18 },
-        { name: "耿鬼", img: "094", difficulty: 2.0, acc: 15 },
-        { name: "暴鲤龙", img: "130", difficulty: 2.5, acc: 15 },
-        { name: "伊布", img: "133", difficulty: 1.3, acc: 25 },
-        { name: "卡比兽", img: "143", difficulty: 2.8, acc: 18 },
-        { name: "急冻鸟", img: "144", difficulty: 3.5, acc: 12 },
-        { name: "闪电鸟", img: "145", difficulty: 3.5, acc: 12 },
-        { name: "火焰鸟", img: "146", difficulty: 3.5, acc: 12 },
-        { name: "快龙", img: "149", difficulty: 3.0, acc: 14 },
-        { name: "超梦", img: "150", difficulty: 4.5, acc: 8 },
-        { name: "凤王", img: "250", difficulty: 4.2, acc: 9 },
-        { name: "洛奇亚", img: "249", difficulty: 4.2, acc: 9 },
-        { name: "水君", img: "245", difficulty: 3.0, acc: 13 },
-        { name: "班基拉斯", img: "248", difficulty: 3.2, acc: 12 },
-        { name: "烈空坐", img: "384", difficulty: 4.8, acc: 7 },
-        { name: "利欧路", img: "447", difficulty: 1.5, acc: 22 }
+        { name: "皮卡丘", img: "025", difficulty: 1.2, acc: 15 },
+        { name: "妙蛙种子", img: "001", difficulty: 1.2, acc: 15 },
+        { name: "巴大蝶", img: "012", difficulty: 1.0, acc: 18 },
+        { name: "九尾", img: "038", difficulty: 2.0, acc: 10 },
+        { name: "耿鬼", img: "094", difficulty: 2.2, acc: 8 },
+        { name: "暴鲤龙", img: "130", difficulty: 2.8, acc: 8 },
+        { name: "卡比兽", img: "143", difficulty: 3.2, acc: 10 },
+        { name: "急冻鸟", img: "144", difficulty: 3.8, acc: 6 },
+        { name: "快龙", img: "149", difficulty: 3.5, acc: 7 },
+        { name: "超梦", img: "150", difficulty: 5.0, acc: 4 },
+        { name: "凤王", img: "250", difficulty: 4.5, acc: 5 },
+        { name: "烈空坐", img: "384", difficulty: 5.5, acc: 4 }
     ];
 
     window.onload = function() {
         const pannel = document.getElementById('trainer-pannel');
         let ids = Array.from({length: 26}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
         ids.slice(0, 3).forEach(id => {
-            const card = document.createElement('div');
-            card.className = 'trainer-card';
-            card.innerHTML = `<img src="img/${id}.png"><p>伙伴 ${id}</p>`;
+            const card = document.createElement('div'); card.className = 'trainer-card';
+            card.innerHTML = `<img src="img/${id}.png"><p>大师 ${id}</p>`;
             card.onclick = () => { playSound('click'); selectTrainer(id); };
             pannel.appendChild(card);
         });
@@ -136,7 +131,7 @@
 
     function selectTrainer(id) {
         document.getElementById('current-trainer-img').src = `img/${id}.png`;
-        document.getElementById('current-trainer-name').innerText = `伙伴 ${id}`;
+        document.getElementById('current-trainer-name').innerText = `大师 ${id}`;
         document.getElementById('active-trainer-bar').style.display = 'flex';
         document.getElementById('screen-select').classList.remove('active');
         document.getElementById('screen-adventure').classList.add('active');
@@ -147,15 +142,14 @@
         energy = 0; updateEnergyUI();
         currentPokemon = pokemonsForToday[attemptCount];
         document.getElementById('attempt-count').innerText = attemptCount;
-        document.getElementById('story-display').innerText = "草丛里有动静...";
-        document.getElementById('hp-indicator').innerText = `发现 ${currentPokemon.name}！快蓄力！`;
+        document.getElementById('story-display').innerText = "危险！发现强力反应...";
         if(decayTimer) clearInterval(decayTimer);
-        decayTimer = setInterval(() => { if (energy > 0) energy -= 1.3; updateEnergyUI(); }, 150);
+        decayTimer = setInterval(() => { if (energy > 0) energy -= 1.8; updateEnergyUI(); }, 150);
     }
 
     function addEnergy() {
         playSound('click');
-        energy += (16 / currentPokemon.difficulty);
+        energy += (15 / currentPokemon.difficulty);
         if (energy >= 100) { energy = 100; clearInterval(decayTimer); setTimeout(showCatchScreen, 300); }
         updateEnergyUI();
     }
@@ -164,24 +158,66 @@
         document.getElementById('screen-adventure').classList.remove('active');
         document.getElementById('screen-catch').classList.add('active');
         document.getElementById('wild-pokemon').src = `https://assets.pokemon.com/assets/cms2/img/pokedex/full/${currentPokemon.img}.png`;
-        document.getElementById('pokemon-info').innerText = `${currentPokemon.name} 在等待挑战！`;
-        const zone = document.getElementById('target-zone');
-        zone.style.width = (currentPokemon.acc * 2) + "%";
-        zone.style.left = (50 - currentPokemon.acc) + "%";
+        document.getElementById('pokemon-info').innerText = `${currentPokemon.name} - 极难`;
+        
+        // 随机捕抓模式
+        const modes = ['H', 'V', 'C'];
+        moveMode = modes[Math.floor(Math.random()*modes.length)];
+        
+        setupUIByMode();
         tossStep = 0; errors = []; startTossLoop();
     }
 
+    function setupUIByMode() {
+        const zone = document.getElementById('target-zone');
+        const cursor = document.getElementById('toss-cursor');
+        const area = document.getElementById('toss-area');
+        
+        // 重置样式
+        zone.style = ""; cursor.style = "";
+        const size = currentPokemon.acc * 4; // 视觉放大
+
+        if (moveMode === 'H') {
+            zone.style.width = size + "px"; zone.style.height = "100%"; zone.style.left = (150 - size/2) + "px";
+        } else if (moveMode === 'V') {
+            zone.style.height = size + "px"; zone.style.width = "100%"; zone.style.top = (60 - size/2) + "px";
+        } else if (moveMode === 'C') {
+            zone.style.width = size + "px"; zone.style.height = size + "px"; 
+            zone.style.borderRadius = "50%"; zone.style.left = (150 - size/2) + "px"; zone.style.top = (60 - size/2) + "px";
+        }
+    }
+
     function startTossLoop() {
-        const titles = ["锁定水平", "锁定高度", "锁定旋转"];
-        document.getElementById('toss-title').innerText = titles[tossStep];
+        document.getElementById('toss-title').innerText = `锁定维度 ${tossStep+1}/3`;
         document.getElementById('lock-btn').disabled = false;
-        cursorPos = 0;
-        let speed = 0.8 + Math.random();
+        pos = 0; angle = 0; 
+        let baseSpeed = (1.2 + Math.random() * 0.8) * 1.1; // 提升10%速度
+
         if(tossInterval) clearInterval(tossInterval);
+        
         tossInterval = setInterval(() => {
-            cursorPos += speed * cursorDir;
-            if (cursorPos >= 100 || cursorPos <= 0) { cursorDir *= -1; speed = 0.8 + Math.random(); }
-            document.getElementById('toss-cursor').style.left = cursorPos + "%";
+            // 非匀速随机修正
+            let jitter = Math.sin(Date.now() / 200) * 0.2;
+            let currentSpeed = baseSpeed + jitter;
+
+            const cursor = document.getElementById('toss-cursor');
+            
+            if (moveMode === 'H') {
+                pos += currentSpeed * dir * 2;
+                if (pos >= 284 || pos <= 0) dir *= -1;
+                cursor.style.left = pos + "px"; cursor.style.top = "52px";
+            } else if (moveMode === 'V') {
+                pos += currentSpeed * dir * 1.5;
+                if (pos >= 104 || pos <= 0) dir *= -1;
+                cursor.style.top = pos + "px"; cursor.style.left = "142px";
+            } else if (moveMode === 'C') {
+                angle += currentSpeed * 0.05;
+                let r = 45;
+                let x = 142 + Math.cos(angle) * r;
+                let y = 52 + Math.sin(angle) * r;
+                cursor.style.left = x + "px"; cursor.style.top = y + "px";
+                pos = angle; // 记录角度用于判定
+            }
         }, 20);
     }
 
@@ -190,17 +226,25 @@
         playSound('click');
         document.getElementById('lock-btn').disabled = true;
 
-        let currentErr = Math.abs(cursorPos - 50);
-        errors.push(currentErr);
+        let err = 0;
+        if (moveMode === 'H') err = Math.abs(pos - 142) / 3;
+        else if (moveMode === 'V') err = Math.abs(pos - 52) / 1.5;
+        else if (moveMode === 'C') {
+            // 圆周模式判定：是否在中心点附近
+            err = 10; // 默认给一个基础难度
+            // 简单的距离判定
+            const size = currentPokemon.acc * 4;
+            if (Math.abs(Math.cos(angle)) < 0.3 && Math.abs(Math.sin(angle)) < 0.3) err = 0;
+            else err = 20;
+        }
+        errors.push(err);
 
         const cursor = document.getElementById('toss-cursor');
-        const isGood = currentErr <= currentPokemon.acc;
-        cursor.style.backgroundColor = isGood ? "#2ecc71" : "#e74c3c";
-        cursor.style.transform = "scale(1.4)";
+        cursor.style.backgroundColor = (err <= currentPokemon.acc) ? "#2ecc71" : "#e74c3c";
+        cursor.style.transform = "scale(1.8)";
 
         setTimeout(() => {
-            cursor.style.backgroundColor = "#222";
-            cursor.style.transform = "scale(1)";
+            cursor.style.backgroundColor = "#222"; cursor.style.transform = "scale(1)";
             tossStep++;
             if (tossStep < 3) startTossLoop();
             else finishCatch();
@@ -211,16 +255,15 @@
         let avgError = errors.reduce((a, b) => a + b) / 3;
         const slot = document.getElementById(`slot-${attemptCount}`);
         
-        // 增加弹窗逻辑
         if (avgError <= currentPokemon.acc) {
             playSound('success');
             slot.innerHTML = `<img src="https://assets.pokemon.com/assets/cms2/img/pokedex/full/${currentPokemon.img}.png">`;
             successCount++;
-            alert("✨ 成功！" + currentPokemon.name + " 被你收服了！");
+            alert("✨ 完美捕捉！收服了 " + currentPokemon.name);
         } else {
             playSound('fail');
             slot.innerHTML = "逃走"; slot.classList.add('missed');
-            alert("💨 哎呀！" + currentPokemon.name + " 逃跑了...");
+            alert("💨 逃掉了！难度太高了...");
         }
 
         attemptCount++;
@@ -228,7 +271,7 @@
             setTimeout(() => {
                 document.getElementById('screen-catch').classList.remove('active');
                 document.getElementById('screen-win').classList.add('active');
-                document.getElementById('final-score').innerText = `今天一共挑战了 5 只，成功收服了 ${successCount} 只！`;
+                document.getElementById('final-score').innerText = `最终成绩：${successCount} / 5`;
             }, 500);
         } else {
             document.getElementById('screen-catch').classList.remove('active');
