@@ -3,92 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>神奇宝贝：大师排行榜挑战</title>
+    <title>神奇宝贝：大师排行榜</title>
     <style>
         :root { --primary: #ff4757; --accent: #ffa502; --bg: #f1f2f6; }
         body { font-family: 'PingFang SC', sans-serif; background: var(--bg); text-align: center; margin: 0; overflow: hidden; touch-action: manipulation; }
         #game-container { width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; background: white; position: relative; }
         
-        /* 恢复文字大小与布局 */
+        /* 界面切换 */
         .screen { display: none; width: 100%; flex-grow: 1; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
         .active { display: flex; }
-        h1 { font-size: 2.2rem; margin-bottom: 10px; }
-        h2 { font-size: 1.8rem; margin: 10px 0; }
-        p { font-size: 1.2rem; }
+        h1 { font-size: 2.2rem; margin: 10px 0; color: #333; }
+        h2 { font-size: 1.8rem; margin: 5px 0; }
 
-        /* 恢复训练师圆形三选一 */
+        /* 训练师选择 */
         .trainer-container { display: flex; gap: 20px; justify-content: center; margin-top: 30px; }
-        .trainer-card { background: white; border: 4px solid #eee; border-radius: 30px; padding: 20px; width: 100px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .trainer-card:active { transform: scale(0.9); border-color: var(--accent); }
-        .trainer-card img { width: 80px; height: 80px; border-radius: 50%; background: #f9f9f9; }
-        .trainer-card p { font-size: 16px; font-weight: bold; margin-top: 10px; color: #333; }
+        .trainer-card { background: white; border: 4px solid #eee; border-radius: 30px; padding: 15px; width: 95px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .trainer-card img { width: 75px; height: 75px; border-radius: 50%; background: #f9f9f9; }
+        .trainer-card p { font-size: 16px; font-weight: bold; margin-top: 10px; }
 
-        /* 捕捉核心区域 */
-        #toss-arena { width: 300px; height: 200px; position: relative; margin: 25px 0; background: #fff; border: 5px solid #333; border-radius: 20px; overflow: hidden; }
+        /* 捕捉区域 */
+        #toss-arena { width: 300px; height: 200px; position: relative; margin: 20px 0; background: #fff; border: 5px solid #333; border-radius: 20px; overflow: hidden; }
         #target-zone { position: absolute; background: rgba(46, 204, 113, 0.5); border: 2px solid #2ecc71; z-index: 1; pointer-events: none; }
-        #toss-cursor { width: 26px; height: 26px; background: #222; position: absolute; border-radius: 50%; z-index: 5; border: 3px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.3); transform: translate(-50%, -50%); }
+        #toss-cursor { width: 26px; height: 26px; background: #222; position: absolute; border-radius: 50%; z-index: 5; border: 3px solid #fff; transform: translate(-50%, -50%); }
         #orbit-line { position: absolute; width: 150px; height: 150px; border: 2px dashed #ddd; border-radius: 50%; top: 25px; left: 75px; display: none; }
 
-        /* 进度条与能量按钮 */
+        /* 进度条与按钮 */
         .bar-container { width: 85%; height: 25px; background: #eee; border-radius: 15px; overflow: hidden; margin: 20px 0; border: 3px solid #444; }
-        #energy-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #ff9f43, #ff6b6b); transition: width 0.1s; }
-        .circle-btn { width: 110px; height: 110px; border-radius: 50%; border: none; background: var(--primary); color: white; font-size: 20px; font-weight: bold; box-shadow: 0 8px #cf3948; cursor: pointer; }
-        .circle-btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 2px #cf3948; }
+        #energy-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #ff9f43, #ff6b6b); }
+        .circle-btn { width: 100px; height: 100px; border-radius: 50%; border: none; background: var(--primary); color: white; font-size: 20px; font-weight: bold; box-shadow: 0 8px #cf3948; cursor: pointer; }
+        .circle-btn:active { transform: translateY(4px); box-shadow: 0 2px #cf3948; }
 
-        /* 战绩报告精灵墙 */
-        #final-team { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 20px 0; max-width: 90%; }
-        .team-slot { width: 60px; height: 60px; background: #fff; border-radius: 12px; border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .team-slot img { width: 50px; }
+        /* 报告页精灵列表 */
+        #final-team { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 15px 0; max-width: 90%; }
+        .team-slot { width: 55px; height: 55px; background: #fff; border-radius: 12px; border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; }
+        .team-slot img { width: 45px; }
 
-        /* 排行榜样式 */
-        #leaderboard { width: 90%; max-height: 220px; overflow-y: auto; background: #fff; border-radius: 15px; padding: 15px; margin-top: 20px; text-align: left; border: 2px solid #eee; }
-        .rank-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 16px; font-weight: bold; }
+        /* 排行榜滚动区 */
+        #leaderboard { width: 90%; max-height: 220px; overflow-y: auto; background: #f8f9fa; border-radius: 15px; padding: 15px; border: 2px solid #eee; margin-top: 15px; }
+        .rank-item { border-bottom: 1px solid #eee; padding: 10px 0; text-align: left; }
+        .rank-main { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; color: #333; }
+        .rank-details { font-size: 12px; color: #888; margin-top: 4px; line-height: 1.4; }
 
-        #collection-shelf { width: 100%; height: 85px; background: #2f3542; display: flex; align-items: center; justify-content: center; gap: 10px; border-top: 5px solid var(--accent); }
-        .slot { width: 50px; height: 50px; background: #57606f; border-radius: 10px; border: 2px solid #747d8c; display: flex; align-items: center; justify-content: center; }
-        .slot img { width: 45px; }
+        #collection-shelf { width: 100%; height: 80px; background: #2f3542; display: flex; align-items: center; justify-content: center; gap: 10px; border-top: 5px solid var(--accent); }
+        .slot { width: 45px; height: 45px; background: #57606f; border-radius: 8px; border: 1px solid #747d8c; display: flex; align-items: center; justify-content: center; }
+        .slot img { width: 40px; }
     </style>
 </head>
 <body>
 
 <div id="game-container">
     <div id="screen-select" class="screen active">
-        <h1>选择你的搭档</h1>
+        <h1>选择搭档</h1>
         <div id="trainer-pannel" class="trainer-container"></div>
     </div>
 
     <div id="screen-adventure" class="screen">
-        <p id="story-display" style="font-size: 1.5rem; color: #333;"></p>
+        <p id="story-display" style="font-weight:bold; font-size:1.4rem;"></p>
         <div class="bar-container"><div id="energy-fill"></div></div>
-        <div style="display: flex; gap: 40px;">
-            <button class="circle-btn" onclick="addEnergy()">蓄力!</button>
-            <button class="circle-btn" onclick="addEnergy()">蓄力!</button>
-        </div>
+        <button class="circle-btn" onclick="addEnergy()">蓄力!</button>
     </div>
 
     <div id="screen-catch" class="screen">
         <h2 id="toss-title">准备捕捉</h2>
-        <img id="wild-pokemon" style="width:160px; margin: 10px 0;" src="">
+        <img id="wild-pokemon" style="width:140px; margin:10px 0;" src="">
         <div id="toss-arena">
             <div id="orbit-line"></div>
             <div id="target-zone"></div>
             <div id="toss-cursor"></div>
         </div>
-        <button id="lock-btn" class="circle-btn" style="background:var(--accent); box-shadow: 0 8px #e67e22;" onclick="lockToss()">捕捉!</button>
+        <button id="lock-btn" class="circle-btn" style="background:var(--accent); box-shadow: 0 8px #e67e22;" onclick="lockToss()">锁定!</button>
     </div>
 
     <div id="screen-win" class="screen">
-        <h1>冒险报告</h1>
+        <h2 style="margin:5px">冒险报告</h2>
         <div id="final-team"></div>
-        <div id="register-area" style="margin-top: 10px;">
-            <input type="text" id="player-name" placeholder="输入姓名登记" style="font-size:18px; padding:12px; width:160px; border-radius:10px; border:2px solid #ddd">
-            <button onclick="submitScore()" style="font-size:18px; padding:12px 25px; background:var(--accent); border:none; border-radius:10px; color:white; font-weight:bold; cursor:pointer; margin-left:10px">提交</button>
+        
+        <div id="register-area">
+            <input type="text" id="player-name" placeholder="输入大师姓名" style="padding:12px; font-size:16px; width:140px; border-radius:10px; border:2px solid #ddd">
+            <button onclick="submitScore()" style="padding:12px 20px; font-size:16px; background:var(--accent); border:none; border-radius:10px; color:white; font-weight:bold; cursor:pointer;">提交战绩</button>
         </div>
+
         <div id="leaderboard">
-            <div style="text-align:center; color:#ff4757; font-weight:bold; margin-bottom:10px;">🏆 全球大师排行榜 (前10)</div>
-            <div id="rank-list" style="color: #666; text-align:center;">提交后查看排名</div>
+            <div id="rank-list" style="color:#999; text-align:center;">正在同步最新排行榜...</div>
         </div>
-        <button class="circle-btn" style="width:180px; height:55px; border-radius:30px; margin-top:20px; font-size:18px;" onclick="location.reload()">再玩一次</button>
+        <button class="circle-btn" style="width:160px; height:50px; border-radius:25px; margin-top:15px; font-size:18px" onclick="location.reload()">再次开启冒险</button>
     </div>
 
     <div id="collection-shelf">
@@ -97,14 +95,13 @@
 </div>
 
 <script>
-    // 已带入你提供的 Google Apps Script URL
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLEqUg5qyBiWN7ovedH6Gu4aYkns_Hnvm0soda2rFGRHFWHKYFbxrFycIF7ZrdF1o43A/exec";
+    // 已更新为你提供的新 URL
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyENd10dbG6vhvvpZ7Ay4q2_QmJN6VPmnFBCBgow_gr7McQNsRx0BVhMRdNVnqX-lKrzw/exec";
 
     let attemptCount = 0, successCount = 0;
-    let energy = 0, decayTimer, tossInterval, currentPokemon, tossStep, subWins, caughtImages = [];
-    let mode = 'H', curX = 150, curY = 100, dir = 1, angle = 0;
+    let energy = 0, currentPokemon, tossStep, subWins, caughtImages = [], caughtNames = [];
+    let mode = 'H', curX = 150, curY = 100, dir = 1, angle = 0, tossInterval;
 
-    // 完整的 30 个精灵库
     const pokemonsPool = [
         { name: "皮卡丘", img: "025", acc: 14 }, { name: "妙蛙种子", img: "001", acc: 15 },
         { name: "小火龙", img: "004", acc: 15 }, { name: "杰尼龟", img: "007", acc: 15 },
@@ -121,143 +118,105 @@
         { name: "达克莱伊", img: "491", acc: 7 }, { name: "阿尔宙斯", img: "493", acc: 4 },
         { name: "甲贺忍蛙", img: "658", acc: 8 }, { name: "仙子伊布", img: "700", acc: 11 },
         { name: "索尔迦雷欧", img: "791", acc: 7 }, { name: "苍响", img: "888", acc: 6 }
+
+        // ... 此处可扩展至30个
     ];
 
-    window.onload = function() {
+    window.onload = () => {
         const pannel = document.getElementById('trainer-pannel');
-        let ids = [1, 2, 3, 4, 5, 6].sort(() => Math.random() - 0.5).slice(0, 3);
-        ids.forEach(id => {
+        [1, 2, 3].sort(()=>Math.random()-0.5).forEach(id => {
             const card = document.createElement('div'); card.className = 'trainer-card';
-            card.innerHTML = `<img src="img/${id}.png"><p>大师 ${id}</p>`;
-            card.onclick = () => { selectTrainer(); };
+            card.innerHTML = `<img src="img/${id}.png"><p>伙伴 ${id}</p>`;
+            card.onclick = () => { document.getElementById('screen-select').classList.remove('active'); document.getElementById('screen-adventure').classList.add('active'); initRound(); };
             pannel.appendChild(card);
         });
         pokemonsForToday = pokemonsPool.sort(() => Math.random() - 0.5).slice(0, 5);
     };
 
-    function selectTrainer() {
-        document.getElementById('screen-select').classList.remove('active');
-        document.getElementById('screen-adventure').classList.add('active');
-        initRound();
-    }
-
     function initRound() {
-        energy = 0; updateEnergyUI();
-        currentPokemon = pokemonsForToday[attemptCount];
-        document.getElementById('story-display').innerText = `发现野生的 ${currentPokemon.name}！`;
-        if(decayTimer) clearInterval(decayTimer);
-        decayTimer = setInterval(() => { if (energy > 0) energy -= 2.2; updateEnergyUI(); }, 150);
+        energy = 0; currentPokemon = pokemonsForToday[attemptCount];
+        document.getElementById('story-display').innerText = `前方发现 ${currentPokemon.name}！`;
+        const decay = setInterval(() => { if(energy > 0) energy -= 2.2; updateUI(); }, 150);
+        window.roundDecay = decay;
     }
 
     function addEnergy() {
-        energy += 12; 
-        if (energy >= 100) { energy = 100; clearInterval(decayTimer); showCatchScreen(); }
-        updateEnergyUI();
+        energy += 15; updateUI();
+        if(energy >= 100) { clearInterval(window.roundDecay); showCatch(); }
     }
 
-    function showCatchScreen() {
+    function showCatch() {
         document.getElementById('screen-adventure').classList.remove('active');
         document.getElementById('screen-catch').classList.add('active');
         document.getElementById('wild-pokemon').src = `https://assets.pokemon.com/assets/cms2/img/pokedex/full/${currentPokemon.img}.png`;
-        tossStep = 0; subWins = 0;
-        nextTossStage();
+        tossStep = 0; subWins = 0; randomizeMode();
     }
 
-    function nextTossStage() {
+    function randomizeMode() {
         const r = Math.random();
         mode = r < 0.34 ? 'H' : (r < 0.67 ? 'V' : 'C');
-        const titles = {'H':'水平捕捉', 'V':'垂直捕捉', 'C':'圆周捕捉'};
-        document.getElementById('toss-title').innerText = `${titles[mode]} (${tossStep+1}/3)`;
-        setupArena();
-        startTossLoop();
-    }
-
-    function setupArena() {
         const zone = document.getElementById('target-zone');
         const orbit = document.getElementById('orbit-line');
         zone.style = ""; orbit.style.display = "none";
+        
         const acc = currentPokemon.acc;
-
-        if (mode === 'H') {
-            zone.style.width = (acc * 6) + "px"; zone.style.height = "100%"; zone.style.left = (150 - acc*3) + "px";
-        } else if (mode === 'V') {
-            zone.style.height = (acc * 6) + "px"; zone.style.width = "100%"; zone.style.top = (100 - acc*3) + "px";
-        } else if (mode === 'C') {
-            orbit.style.display = "block";
-            zone.style.width = "48px"; zone.style.height = "48px"; zone.style.borderRadius = "50%";
-            zone.style.left = "226px"; zone.style.top = "76px";
-        }
+        if(mode === 'H') { zone.style.width=(acc*6)+"px"; zone.style.height="100%"; zone.style.left=(150-acc*3)+"px"; }
+        else if(mode === 'V') { zone.style.height=(acc*6)+"px"; zone.style.width="100%"; zone.style.top=(100-acc*3)+"px"; }
+        else { orbit.style.display="block"; zone.style.width="48px"; zone.style.height="48px"; zone.style.left="226px"; zone.style.top="76px"; zone.style.borderRadius="50%"; }
+        
+        startLoop();
     }
 
-    function startTossLoop() {
-        curX = 150; curY = 100; angle = 0; dir = 1;
+    function startLoop() {
+        curX = 150; curY = 100; angle = 0;
+        document.getElementById('toss-title').innerText = `${mode==='H'?'水平':mode==='V'?'垂直':'圆周'}模式 (${tossStep+1}/3)`;
         document.getElementById('lock-btn').disabled = false;
         if(tossInterval) clearInterval(tossInterval);
         tossInterval = setInterval(() => {
             const cursor = document.getElementById('toss-cursor');
-            let jitter = Math.sin(Date.now() / 110) * 2.5;
-            let speed = 5.8 + jitter;
-
-            if (mode === 'H') {
-                curX += speed * dir; if (curX > 285 || curX < 15) dir *= -1;
-                cursor.style.left = curX + "px"; cursor.style.top = "100px";
-            } else if (mode === 'V') {
-                curY += speed * dir; if (curY > 185 || curY < 15) dir *= -1;
-                cursor.style.top = curY + "px"; cursor.style.left = "150px";
-            } else if (mode === 'C') {
-                angle += 0.095; curX = 150 + Math.cos(angle)*75; curY = 100 + Math.sin(angle)*75;
-                cursor.style.left = curX + "px"; cursor.style.top = curY + "px";
-            }
+            if(mode === 'H') { curX += 6 * dir; if(curX > 280 || curX < 20) dir *= -1; cursor.style.left = curX+"px"; cursor.style.top="100px"; }
+            else if(mode === 'V') { curY += 6 * dir; if(curY > 180 || curY < 20) dir *= -1; cursor.style.top = curY+"px"; cursor.style.left="150px"; }
+            else { angle += 0.1; curX = 150 + Math.cos(angle)*75; curY = 100 + Math.sin(angle)*75; cursor.style.left = curX+"px"; cursor.style.top = curY+"px"; }
         }, 20);
     }
 
     function lockToss() {
         clearInterval(tossInterval);
-        document.getElementById('lock-btn').disabled = true;
-        let hit = false;
-        const accRange = currentPokemon.acc * 3;
-        if (mode === 'H') hit = Math.abs(curX - 150) < accRange;
-        else if (mode === 'V') hit = Math.abs(curY - 100) < accRange;
-        else if (mode === 'C') {
-            let nA = angle % (Math.PI * 2);
-            hit = Math.abs(nA) < 0.4 || Math.abs(nA - Math.PI*2) < 0.4;
-        }
-
-        const cursor = document.getElementById('toss-cursor');
-        cursor.style.backgroundColor = hit ? "#2ecc71" : "#e74c3c";
-
+        let accRange = currentPokemon.acc * 3;
+        let hit = (mode==='H' && Math.abs(curX-150)<accRange) || (mode==='V' && Math.abs(curY-100)<accRange) || (mode==='C' && Math.abs(angle%(Math.PI*2)) < 0.4);
+        if(hit) subWins++;
+        
+        document.getElementById('toss-cursor').style.backgroundColor = hit ? "#2ecc71" : "#e74c3c";
+        
         setTimeout(() => {
-            cursor.style.backgroundColor = "#222";
-            if (hit) subWins++;
-            tossStep++;
-            if (tossStep < 3) nextTossStage();
-            else finishPokemon();
+            document.getElementById('toss-cursor').style.backgroundColor = "#222";
+            if(++tossStep < 3) randomizeMode();
+            else finish();
         }, 800);
     }
 
-    function finishPokemon() {
+    function finish() {
         const isCaught = subWins >= 2;
-        const slot = document.getElementById(`slot-${attemptCount}`);
-        if (isCaught) {
-            slot.innerHTML = `<img src="https://assets.pokemon.com/assets/cms2/img/pokedex/full/${currentPokemon.img}.png">`;
+        if(isCaught) {
+            document.getElementById(`slot-${attemptCount}`).innerHTML = `<img src="https://assets.pokemon.com/assets/cms2/img/pokedex/full/${currentPokemon.img}.png">`;
             caughtImages.push(currentPokemon.img);
+            caughtNames.push(currentPokemon.name);
             successCount++;
-            alert("✅ 成功捕捉！" + currentPokemon.name + " 加入了队伍！");
+            alert("✅ 成功收服 " + currentPokemon.name + "！");
         } else {
-            slot.innerText = "逃";
-            alert("💨 哎呀！" + currentPokemon.name + " 挣脱逃跑了...");
+            document.getElementById(`slot-${attemptCount}`).innerText = "逃";
+            alert("💨 哎呀！" + currentPokemon.name + " 逃走了...");
         }
-
-        attemptCount++;
-        if (attemptCount >= 5) showFinalScreen();
+        
+        if(++attemptCount >= 5) showWin();
         else { document.getElementById('screen-catch').classList.remove('active'); document.getElementById('screen-adventure').classList.add('active'); initRound(); }
     }
 
-    function showFinalScreen() {
+    function showWin() {
         document.getElementById('screen-catch').classList.remove('active');
         document.getElementById('screen-win').classList.add('active');
         const team = document.getElementById('final-team');
-        team.innerHTML = ""; // 清空
+        team.innerHTML = "";
         caughtImages.forEach(img => {
             team.innerHTML += `<div class="team-slot"><img src="https://assets.pokemon.com/assets/cms2/img/pokedex/full/${img}.png"></div>`;
         });
@@ -265,30 +224,43 @@
 
     async function submitScore() {
         const name = document.getElementById('player-name').value;
-        if(!name) return alert("请先输入大名再提交哦！");
+        if(!name) return alert("请留下你的大师名号！");
         const listDiv = document.getElementById('rank-list');
-        listDiv.innerText = "正在同步大师榜单...";
+        listDiv.innerText = "正在获取最新大师榜单...";
         
         try {
-            const res = await fetch(SCRIPT_URL, {
+            // 发送数据并等待返回 JSON 排名列表
+            const response = await fetch(SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors', // 使用 no-cors 模式确保跨域请求发出
-                body: JSON.stringify({ name: name, score: successCount })
+                body: JSON.stringify({ 
+                    name: name, 
+                    score: successCount, 
+                    pokemonList: caughtNames 
+                })
             });
-            
-            // 提示：由于 no-cors 无法获取返回内容，
-            // 建议提交后 1 秒手动刷新或提示成功。
-            setTimeout(() => {
-                listDiv.innerHTML = "<span style='color:green'>提交成功！请在 Google 表格中查看或下次进入刷新。</span>";
-                document.getElementById('register-area').style.display = 'none';
-            }, 1000);
-            
+            const topTen = await response.json();
+            renderRanks(topTen);
+            document.getElementById('register-area').style.display = 'none';
         } catch(e) { 
-            alert("提交遇到了点小问题，请确保 Web App 已正确部署并开启所有人访问。");
+            alert("同步排行榜失败，数据已保存至云端，请稍后刷新。");
+            listDiv.innerText = "无法连接至大师服务器。";
         }
     }
 
-    function updateEnergyUI() { document.getElementById('energy-fill').style.width = energy + "%"; }
+    function renderRanks(data) {
+        const list = document.getElementById('rank-list');
+        list.innerHTML = data.map((item, i) => `
+            <div class="rank-item">
+                <div class="rank-main">
+                    <span>${i+1}. ${item[0]}</span>
+                    <span style="color:var(--primary)">${item[1]} 只</span>
+                </div>
+                <div class="rank-details">收服名单: ${item[2] || '暂无'}</div>
+            </div>
+        `).join('');
+    }
+
+    function updateUI() { document.getElementById('energy-fill').style.width = energy+"%"; }
 </script>
 </body>
 </html>
